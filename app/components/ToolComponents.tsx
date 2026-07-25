@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { jsPDF } from "jspdf";
+import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
 import { ToolLayout } from "./ToolLayout";
 
@@ -1315,6 +1316,347 @@ export function ImageToPdfTool() {
                 </a>
               ) : null}
             </div>
+          </div>
+        </div>
+      </div>
+    </ToolLayout>
+  );
+}
+
+export function PdfMergeTool() {
+  const [pdfFiles, setPdfFiles] = useState<Array<{
+    id: string;
+    name: string;
+    file: File;
+    pageCount: number;
+    selected: boolean;
+  }>>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState("");
+  const [error, setError] = useState("");
+  const [dialogState, setDialogState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    supportsPasswordEntry: boolean;
+    fileIdToRemove?: string;
+    fileIndexToRemove?: number;
+    onRemove?: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    supportsPasswordEntry: false,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    };
+  }, [downloadUrl]);
+
+  const closeDialog = () => {
+    setDialogState({ open: false, title: "", message: "", supportsPasswordEntry: false });
+  };
+
+  const removePdfFromQueue = (id?: string, index?: number) => {
+    if (id || typeof index === "number") {
+      setPdfFiles((previous) => {
+        if (typeof index === "number" && index >= 0 && index < previous.length) {
+          const next = [...previous];
+          next.splice(index, 1);
+          return next;
+        }
+
+        if (id) {
+          return previous.filter((item) => item.id !== id);
+        }
+
+        return previous;
+      });
+    }
+    closeDialog();
+  };
+
+  const showDialog = (title: string, message: string, supportsPasswordEntry = false, fileIdToRemove?: string, fileIndexToRemove?: number, onRemove?: () => void) => {
+    setDialogState({ open: true, title, message, supportsPasswordEntry, fileIdToRemove, fileIndexToRemove, onRemove });
+  };
+
+  const validatePdfFile = async (file: File) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    try {
+  const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+  return pdfDoc.getPageCount();
+} catch (error) {
+  const message =
+    error instanceof Error ? error.message : String(error);
+
+  if (/encrypted|password/i.test(message)) {
+    throw new Error("encrypted");
+  }
+
+  throw error;
+}
+  };
+
+  const readFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError("");
+
+    const validFiles = Array.from(files).filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+    if (validFiles.length !== files.length) {
+      setError("Only PDF files can be merged. Please choose valid PDF documents.");
+    }
+
+    const parsedFiles = await Promise.all(
+      validFiles.map(async (file) => {
+        try {
+          const pageCount = await validatePdfFile(file);
+          return {
+            id: `${file.name}-${Math.random().toString(36).slice(2, 10)}`,
+            name: file.name,
+            file,
+            pageCount,
+            selected: false,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          const isProtected = /encrypted|password/i.test(message);
+          showDialog(
+            isProtected ? "Encrypted PDF" : "Unable to open PDF",
+            "This PDF is encrypted or password protected and cannot be merged with the current PDF engine.",
+            false,
+            undefined,
+            undefined,
+            () => {
+              closeDialog();
+            }
+          );
+          return null;
+        }
+      })
+    );
+
+    const usableFiles = parsedFiles.filter((item): item is NonNullable<typeof item> => item !== null);
+    setPdfFiles((previous) => [...previous, ...usableFiles]);
+  };
+
+  const reorderFiles = (targetId: string) => {
+    if (!draggedId || draggedId === targetId) return;
+    setPdfFiles((previous) => {
+      const updated = [...previous];
+      const fromIndex = updated.findIndex((item) => item.id === draggedId);
+      const toIndex = updated.findIndex((item) => item.id === targetId);
+      if (fromIndex < 0 || toIndex < 0) return previous;
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+    setDraggedId(null);
+  };
+
+  const removeSelected = () => {
+    setPdfFiles((previous) => previous.filter((item) => !item.selected));
+  };
+
+  const removeSinglePdf = (id: string) => {
+    setPdfFiles((previous) => previous.filter((item) => item.id !== id));
+  };
+
+  const mergePdfFiles = async () => {
+    if (!pdfFiles.length) return;
+    setMerging(true);
+    setError("");
+
+    try {
+      const mergedPdf = await PDFDocument.create();
+
+      for (const entry of pdfFiles) {
+        const bytes = await entry.file.arrayBuffer();
+        const sourcePdf = await PDFDocument.load(bytes, {
+          ignoreEncryption: true,
+        });
+        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
+
+      if (mergedPdf.getPageCount() === 0) {
+        showDialog("Unable to merge PDFs", "This PDF is encrypted or password protected and cannot be merged with the current PDF engine.", false, undefined, undefined, () => {
+          closeDialog();
+        });
+        return;
+      }
+
+      const mergedBytes = await mergedPdf.save();
+      const pdfBytes = new Uint8Array(mergedBytes);
+      const pdfBuffer = new ArrayBuffer(pdfBytes.byteLength);
+      new Uint8Array(pdfBuffer).set(pdfBytes);
+      const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      setDownloadUrl(url);
+    } catch (err) {
+      console.error(err);
+      setError("The PDFs couldn’t be merged. Please try again with valid documents.");
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const selectAll = () => {
+    setPdfFiles((previous) => previous.map((item) => ({ ...item, selected: true })));
+  };
+
+  return (
+    <ToolLayout
+      title="PDF Merge"
+      description="Combine multiple PDF documents into one polished file directly in your browser with drag-and-drop ordering, selection controls and instant download."
+    >
+      {dialogState.open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.5rem] border border-white/10 bg-slate-900/95 p-6 shadow-2xl shadow-slate-950/40">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Notice</p>
+            <h3 className="mt-3 text-xl font-semibold text-white">{dialogState.title}</h3>
+            <p className="mt-3 text-sm leading-7 text-slate-300">{dialogState.message}</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                onClick={() => {
+                  closeDialog();
+                }}
+                className="rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-semibold text-slate-200"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  if (dialogState.onRemove) {
+                    dialogState.onRemove();
+                  } else {
+                    removePdfFromQueue(dialogState.fileIdToRemove, dialogState.fileIndexToRemove);
+                  }
+                }}
+                className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-2.5 font-semibold text-white"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-4 sm:p-5">
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragging(false);
+            readFiles(event.dataTransfer.files);
+          }}
+          className={`rounded-[1.25rem] border border-dashed p-6 text-center transition ${isDragging ? "border-violet-400 bg-violet-500/10" : "border-white/10 bg-slate-950/50"}`}
+        >
+          <p className="text-lg font-semibold text-white">Drop PDF files here</p>
+          <p className="mt-2 text-sm text-slate-400">Upload multiple PDFs, arrange them in the order you want and merge them without sending anything to a server.</p>
+          <label className="mt-4 inline-flex cursor-pointer rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">
+            Browse files
+            <input type="file" accept="application/pdf" multiple onChange={(event) => readFiles(event.target.files)} className="hidden" />
+          </label>
+        </div>
+
+        {error ? <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</div> : null}
+
+        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-4 rounded-[1.25rem] border border-white/10 bg-slate-950/70 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">PDF queue</p>
+                <p className="mt-1 text-sm text-slate-400">{pdfFiles.length} document{pdfFiles.length === 1 ? "" : "s"} ready to merge</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={selectAll} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-200">Select all</button>
+                <button onClick={removeSelected} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-200">Remove selected</button>
+                <button onClick={() => setPdfFiles([])} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-200">Clear all</button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {pdfFiles.length ? (
+                pdfFiles.map((item) => (
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={() => setDraggedId(item.id)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => reorderFiles(item.id)}
+                    className="rounded-2xl border border-white/10 bg-slate-900/70 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.selected)}
+                        onChange={() => {
+                          setPdfFiles((previous) => previous.map((entry) => (entry.id === item.id ? { ...entry, selected: !entry.selected } : entry)));
+                        }}
+                        className="h-4 w-4 rounded border-white/10 bg-transparent"
+                      />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-sky-500/20 text-sm font-semibold text-violet-200">
+                        PDF
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-white">{item.name}</p>
+                        <p className="text-sm text-slate-400">{item.pageCount} page{item.pageCount === 1 ? "" : "s"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removeSinglePdf(item.id);
+                          }}
+                          className="rounded-full border border-white/10 bg-white/10 px-2 py-1 text-sm text-slate-200"
+                        >
+                          ✕
+                        </button>
+                        <div className="text-sm text-slate-400">↕</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/10 bg-slate-900/60 p-6 text-center text-sm text-slate-400">
+                  Your merged PDF queue will appear here. Add one or more PDF files to begin.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-[1.25rem] border border-white/10 bg-slate-950/70 p-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Merge and download</p>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm leading-7 text-slate-300">
+              <p>Drag files into the upload area or use Browse files to add PDFs.</p>
+              <p>Reorder them by dragging the cards, select any file to remove it, and merge everything into a single document.</p>
+              <p>Processing happens locally in your browser, so your files never leave the device.</p>
+            </div>
+
+            <button
+              onClick={mergePdfFiles}
+              disabled={!pdfFiles.length || merging}
+              className="inline-flex rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {merging ? "Merging PDFs…" : "Merge PDFs"}
+            </button>
+
+            {downloadUrl ? (
+              <a href={downloadUrl} download="toolnova-merged.pdf" className="mt-3 inline-flex rounded-xl border border-white/10 px-4 py-3 font-semibold text-slate-200">
+                Download merged PDF
+              </a>
+            ) : null}
           </div>
         </div>
       </div>

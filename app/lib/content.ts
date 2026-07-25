@@ -43,7 +43,8 @@ export const defaultTools: ToolEntry[] = [
   { id: "compress", title: "Image Compressor", description: "Reduce image size while preserving quality.", href: "/tools/image-compressor", accent: toolAccents[6], slug: "image-compressor", category: "Image Tools" },
   { id: "resize", title: "Image Resizer", description: "Resize images to exact dimensions.", href: "/tools/image-resizer", accent: toolAccents[7], slug: "image-resizer", category: "Image Tools" },
   { id: "pdf", title: "Image to PDF", description: "Convert images into a PDF document.", href: "/tools/image-to-pdf", accent: toolAccents[8], slug: "image-to-pdf", category: "PDF Tools" },
-  { id: "qr", title: "QR Code Generator", description: "Generate shareable QR codes in seconds.", href: "/tools/qr-code-generator", accent: toolAccents[9], slug: "qr-code-generator", category: "Developer Tools" },
+  { id: "merge-pdf", title: "PDF Merge", description: "Combine multiple PDF files in the browser with drag-and-drop ordering.", href: "/tools/pdf-merge", accent: toolAccents[9], slug: "pdf-merge", category: "PDF Tools" },
+  { id: "qr", title: "QR Code Generator", description: "Generate shareable QR codes in seconds.", href: "/tools/qr-code-generator", accent: toolAccents[10], slug: "qr-code-generator", category: "Developer Tools" },
   { id: "text", title: "Text Case Converter", description: "Change text into uppercase or title case.", href: "/tools/text-case-converter", accent: toolAccents[10], slug: "text-case-converter", category: "Text Tools" },
   { id: "unit", title: "Unit Converter", description: "Convert meters and feet with a single click.", href: "/tools/unit-converter", accent: toolAccents[11], slug: "unit-converter", category: "Developer Tools" },
 ];
