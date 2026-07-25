@@ -7,7 +7,7 @@ import CropCanvas from "./CropCanvas";
 import CropSidebar from "./CropSidebar";
 
 export default function CropTool() {
-  const [image, setImage] = useState<string | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
   return (
     <div className="container mx-auto max-w-7xl py-10 px-4">
@@ -22,13 +22,13 @@ export default function CropTool() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card className="min-h-[600px] p-6">
-            <CropCanvas />
+            <CropCanvas onCrop={setCroppedImage} />
           </Card>
         </div>
 
         <div>
           <Card className="min-h-[600px] p-6">
-            <CropSidebar />
+            <CropSidebar croppedImage={croppedImage} />
           </Card>
         </div>
       </div>

@@ -1,11 +1,24 @@
 "use client";
 
 import { useRef, useState } from "react";
+import {
+  Cropper,
+  CropperRef,
+  RectangleStencil,
+} from "react-advanced-cropper";
 import { ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function CropCanvas() {
+type CropCanvasProps = {
+  onCrop: (image: string) => void;
+};
+
+export default function CropCanvas({
+  onCrop,
+}: CropCanvasProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cropperRef = useRef<CropperRef>(null);
+
   const [image, setImage] = useState<string | null>(null);
 
   const handleFileChange = (
@@ -58,26 +71,51 @@ export default function CropCanvas() {
 
   return (
     <div className="space-y-4">
-      <div className="flex h-[500px] items-center justify-center overflow-hidden rounded-xl border bg-black">
-        <img
+      <div className="h-[500px] overflow-hidden rounded-xl border bg-black">
+        <Cropper
+          ref={cropperRef}
           src={image}
-          alt="Preview"
-          className="max-h-full max-w-full object-contain"
+          className="h-full w-full"
+          stencilComponent={RectangleStencil}
+          stencilProps={{
+            grid: true,
+            movable: true,
+            resizable: true,
+          }}
+          onChange={(cropper) => {
+            console.log(cropper.getCoordinates());
+          }}
         />
       </div>
 
-      <Button
-        variant="outline"
-        onClick={() => {
-          setImage(null);
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setImage(null);
 
-          if (inputRef.current) {
-            inputRef.current.value = "";
-          }
-        }}
-      >
-        Change Image
-      </Button>
+            if (inputRef.current) {
+              inputRef.current.value = "";
+            }
+          }}
+        >
+          Change Image
+        </Button>
+
+        <Button
+          onClick={() => {
+            const canvas = cropperRef.current?.getCanvas();
+
+            if (!canvas) return;
+
+            const dataUrl = canvas.toDataURL("image/png");
+
+            onCrop(dataUrl);
+          }}
+        >
+          Crop Image
+        </Button>
+      </div>
     </div>
   );
 }
