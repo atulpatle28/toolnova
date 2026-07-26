@@ -1,22 +1,22 @@
 import { ReactNode } from "react";
 
 type EditorLayoutProps = {
-  left: ReactNode;
-  right: ReactNode;
+  canvas: ReactNode;
+  sidebar: ReactNode;
 };
 
 export default function EditorLayout({
-  left,
-  right,
+  canvas,
+  sidebar,
 }: EditorLayoutProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
-        {left}
+        {canvas}
       </div>
 
       <div>
-        {right}
+        {sidebar}
       </div>
     </div>
   );
