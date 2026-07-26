@@ -1,132 +1,198 @@
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
-import { ToolCard } from "./components/ToolComponents";
-import { defaultTools } from "./lib/content";
+import {
+  Sparkles,
+  Crop,
+  Calculator,
+  FileText,
+  ArrowRight,
+  Search,
+  FileSpreadsheet,
+  Combine,
+} from "lucide-react";
 
-const tools = defaultTools.map((tool) => ({
-  title: tool.title,
-  description: tool.description,
-  href: tool.href,
-  accent: tool.accent.replace("from-", "").replace(" to-", " "),
-}));
+const ILOVEPDF_TOOLS = [
+  {
+    id: "image-crop",
+    title: "Image Studio & Passport Maker",
+    desc: "Crop, rotate, filter, and create official passport size photos with custom background colors.",
+    category: "image",
+    href: "/tools/image-crop",
+    color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:border-cyan-400",
+    badge: "Popular Studio",
+    icon: Crop,
+  },
+  {
+    id: "pdf-compressor",
+    title: "PDF Compressor (Target KB)",
+    desc: "11zon-style compression: Set exact target KB limit for official application forms.",
+    category: "pdf",
+    href: "/tools/pdf-compressor",
+    color: "bg-red-500/10 text-red-400 border-red-500/30 hover:border-red-400",
+    badge: "11zon Feature",
+    icon: FileText,
+  },
+  {
+    id: "pdf-merge",
+    title: "Merge PDF Files",
+    desc: "Online2PDF style multi-file joiner. Combine multiple PDF documents into one.",
+    category: "pdf",
+    href: "/tools/pdf-merge",
+    color: "bg-red-500/10 text-red-400 border-red-500/30 hover:border-red-400",
+    badge: "Online2PDF",
+    icon: Combine,
+  },
+  {
+    id: "age-calculator",
+    title: "Age Calculator Pro",
+    desc: "Calculate precise age in years, months, weeks, and days with birthday countdown.",
+    category: "finance",
+    href: "/tools/age-calculator",
+    color: "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:border-amber-400",
+    badge: "Utility",
+    icon: Calculator,
+  },
+  {
+    id: "gst-calculator",
+    title: "GST Calculator India",
+    desc: "Compute GST amount instantly with 5%, 12%, 18%, and 28% tax slabs.",
+    category: "finance",
+    href: "/tools/gst-calculator",
+    color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400",
+    badge: "Tax",
+    icon: FileSpreadsheet,
+  },
+  {
+    id: "emi-calculator",
+    title: "Loan EMI Calculator",
+    desc: "Calculate monthly loan EMI payments, total interest, and payback breakdown.",
+    category: "finance",
+    href: "/tools/emi-calculator",
+    color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:border-indigo-400",
+    badge: "Finance",
+    icon: Calculator,
+  },
+];
 
-export const metadata = {
-  title: "ToolNova | 100+ Free Online Tools",
-  description: "Explore fast and modern online tools for calculations, images, PDFs and development tasks.",
-};
+export default function HomePage() {
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
-export default function Home() {
+  const filtered = ILOVEPDF_TOOLS.filter((t) => {
+    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.desc.toLowerCase().includes(search.toLowerCase());
+    const matchesTab = activeTab === "all" || t.category === activeTab;
+    return matchesSearch && matchesTab;
+  });
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.25),_transparent_35%),linear-gradient(135deg,_#050816_0%,_#111827_35%,_#0f172a_100%)] text-slate-100">
-      <div className="mx-auto flex max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-3 shadow-lg shadow-slate-950/20 backdrop-blur md:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-sky-500 font-semibold text-white">
-              T
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
+      <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-lg font-semibold tracking-tight">ToolNova</p>
-              <p className="text-xs text-slate-300">Free online utilities</p>
-            </div>
-          </div>
-          <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
-            <Link href="/tools" className="transition hover:text-white">Tools</Link>
-            <Link href="/search" className="transition hover:text-white">Search</Link>
-            <Link href="/about" className="transition hover:text-white">About</Link>
-            <Link href="/blog" className="transition hover:text-white">Blog</Link>
-            <Link href="/admin" className="transition hover:text-white">Admin</Link>
-            <Link href="/contact" className="transition hover:text-white">Contact</Link>
-          </nav>
-        </header>
-
-        <section className="mt-8 grid gap-8 rounded-[2rem] border border-white/10 bg-slate-950/50 p-6 shadow-2xl shadow-slate-950/30 backdrop-blur xl:grid-cols-[1.2fr_0.8fr] xl:p-10">
-          <div className="flex flex-col justify-center">
-            <span className="mb-4 inline-flex w-fit items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-sm text-violet-200">
-              Trusted by creators, students and developers
+            <span className="font-extrabold text-xl text-white">
+              Tool<span className="text-red-500">Nova</span>
             </span>
-            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              100+ Free Online Tools
-            </h1>
-            <p className="mt-4 max-w-xl text-lg leading-8 text-slate-300">
-              Discover fast, accurate utilities for calculations, images, PDFs and development tasks in one modern workspace.
-            </p>
+          </Link>
 
-            <form action="/search" method="get" className="mt-8 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-lg shadow-black/20 sm:flex-row">
-              <input
-                type="text"
-                name="query"
-                placeholder="Search tools, formats or tasks"
-                className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-400"
-              />
-              <button type="submit" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-5 py-3 font-semibold text-white transition hover:opacity-90">
-                Search
+          <Link
+            href="/tools/image-crop"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-950"
+          >
+            Launch Image Studio
+          </Link>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 pt-10 pb-16 space-y-8">
+        <div className="text-center space-y-3 max-w-3xl mx-auto">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-red-400">
+            iLovePDF + 11zon + Online2PDF Super Workspace
+          </span>
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+            Every tool you need to work with <br />
+            <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">
+              PDFs & Images in One Place
+            </span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            100% free, unlimited, and processed locally on your browser for ultimate privacy.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-5xl mx-auto pt-2">
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+            {["all", "pdf", "image", "finance"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                  activeTab === tab
+                    ? "bg-red-600 text-white shadow-lg shadow-red-950"
+                    : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                }`}
+              >
+                {tab}
               </button>
-            </form>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {[
-                "Calculators",
-                "PDF Tools",
-                "Image Tools",
-                "Text Tools",
-                "Developer Tools",
-              ].map((category) => (
-                <button key={category} className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 transition hover:border-violet-400/40 hover:text-white">
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-violet-500/20 via-slate-900/80 to-sky-500/20 p-5">
-            <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/70 p-5">
-              <p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-400">Popular this week</p>
-              <div className="mt-4 space-y-3">
-                {[
-                  ["PDF Toolkit", "Merge, split and compress in one flow"],
-                  ["AI Writing Assistant", "Rewrite text with cleaner structure"],
-                  ["Image Resizer", "Resize for web, social and print"],
-                ].map(([title, desc]) => (
-                  <div key={title} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <p className="font-semibold text-white">{title}</p>
-                    <p className="mt-1 text-sm text-slate-300">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="tools" className="mt-8">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-400">Featured collection</p>
-              <h2 className="text-2xl font-semibold text-white">Handpicked tools for everyday tasks</h2>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {tools.map((tool) => (
-              <ToolCard key={tool.title} {...tool} />
             ))}
           </div>
-        </section>
 
-        <footer className="mt-10 flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-slate-950/50 px-6 py-8 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-semibold text-white">ToolNova</p>
-            <p className="mt-1">Fast, polished tools for modern everyday work.</p>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              placeholder="Search tool..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-red-500"
+            />
           </div>
-          <div className="flex flex-wrap gap-4">
-            <Link href="/about" className="hover:text-white">About</Link>
-            <Link href="/blog" className="hover:text-white">Blog</Link>
-            <Link href="/admin" className="hover:text-white">Admin</Link>
-            <Link href="/contact" className="hover:text-white">Contact</Link>
-            <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
-            <Link href="/disclaimer" className="hover:text-white">Disclaimer</Link>
-            <Link href="/terms-and-conditions" className="hover:text-white">Terms</Link>
-          </div>
-        </footer>
-      </div>
-    </main>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto pt-4">
+          {filtered.map((t) => {
+            const Icon = t.icon;
+            return (
+              <Link
+                key={t.id}
+                href={t.href}
+                className={`p-6 rounded-2xl bg-slate-900/80 border transition-all duration-200 flex flex-col justify-between group hover:-translate-y-1 ${t.color}`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-slate-300 uppercase">
+                      {t.badge}
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-extrabold text-white group-hover:text-red-400 transition-colors">
+                    {t.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                    {t.desc}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-red-400">
+                  <span>Open Utility</span>
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </main>
+
+      <footer className="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500">
+        <p>© {new Date().getFullYear()} ToolNova. Built for speed and privacy.</p>
+      </footer>
+    </div>
   );
 }

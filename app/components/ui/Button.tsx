@@ -1,38 +1,21 @@
-type ButtonProps = {
-  children: React.ReactNode;
-  onClick?: () => void;
-  type?: "button" | "submit" | "reset";
-  variant?: "primary" | "secondary";
-  disabled?: boolean;
-  className?: string;
-};
+// Inside app/components/ui/Button.tsx
 
-export default function Button({
-  children,
-  onClick,
-  type = "button",
-  variant = "primary",
-  disabled = false,
-  className = "",
-}: ButtonProps) {
-  const base =
-    "rounded-xl px-5 py-3 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost" | "outline";
+  size?: "sm" | "md" | "lg" | "icon"; // Add supported sizes here
+}
 
-  const styles = {
-    primary:
-      "bg-blue-600 hover:bg-blue-700 text-white",
-    secondary:
-      "bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700",
-  };
-
+export const Button: React.FC<ButtonProps> = ({ 
+  variant = "primary", 
+  size = "md", 
+  className = "", 
+  children, 
+  ...props 
+}) => {
+  // Add styling classes for the variants/sizes as needed
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`${base} ${styles[variant]} ${className}`}
-    >
+    <button className={`btn btn-${variant} btn-${size} ${className}`} {...props}>
       {children}
     </button>
   );
-}
+};

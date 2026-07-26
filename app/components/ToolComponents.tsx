@@ -1477,9 +1477,7 @@ export function PdfMergeTool() {
 
       for (const entry of pdfFiles) {
         const bytes = await entry.file.arrayBuffer();
-        const sourcePdf = await PDFDocument.load(bytes, {
-          ignoreEncryption: true,
-        });
+        const sourcePdf = await PDFDocument.load(bytes);
         const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       }
