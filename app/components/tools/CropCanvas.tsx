@@ -20,7 +20,6 @@ export default function CropCanvas({
   const cropperRef = useRef<CropperRef>(null);
 
   const [image, setImage] = useState<string | null>(null);
-
   const handleFileChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
