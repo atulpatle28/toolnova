@@ -1,198 +1,201 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+import { motion } from "framer-motion";
+import { Navbar } from "@/components/layout/Navbar";
+import { ToolCard } from "@/components/ui/ToolCard";
+import { CATEGORIES, ALL_TOOLS } from "@/lib/tools-registry";
 import {
-  Sparkles,
-  Crop,
-  Calculator,
-  FileText,
-  ArrowRight,
   Search,
-  FileSpreadsheet,
-  Combine,
+  ShieldCheck,
+  Zap,
+  Cpu,
+  Lock,
+  Globe2,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
-const ILOVEPDF_TOOLS = [
-  {
-    id: "image-crop",
-    title: "Image Studio & Passport Maker",
-    desc: "Crop, rotate, filter, and create official passport size photos with custom background colors.",
-    category: "image",
-    href: "/tools/image-crop",
-    color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:border-cyan-400",
-    badge: "Popular Studio",
-    icon: Crop,
-  },
-  {
-    id: "pdf-compressor",
-    title: "PDF Compressor (Target KB)",
-    desc: "11zon-style compression: Set exact target KB limit for official application forms.",
-    category: "pdf",
-    href: "/tools/pdf-compressor",
-    color: "bg-red-500/10 text-red-400 border-red-500/30 hover:border-red-400",
-    badge: "11zon Feature",
-    icon: FileText,
-  },
-  {
-    id: "pdf-merge",
-    title: "Merge PDF Files",
-    desc: "Online2PDF style multi-file joiner. Combine multiple PDF documents into one.",
-    category: "pdf",
-    href: "/tools/pdf-merge",
-    color: "bg-red-500/10 text-red-400 border-red-500/30 hover:border-red-400",
-    badge: "Online2PDF",
-    icon: Combine,
-  },
-  {
-    id: "age-calculator",
-    title: "Age Calculator Pro",
-    desc: "Calculate precise age in years, months, weeks, and days with birthday countdown.",
-    category: "finance",
-    href: "/tools/age-calculator",
-    color: "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:border-amber-400",
-    badge: "Utility",
-    icon: Calculator,
-  },
-  {
-    id: "gst-calculator",
-    title: "GST Calculator India",
-    desc: "Compute GST amount instantly with 5%, 12%, 18%, and 28% tax slabs.",
-    category: "finance",
-    href: "/tools/gst-calculator",
-    color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:border-emerald-400",
-    badge: "Tax",
-    icon: FileSpreadsheet,
-  },
-  {
-    id: "emi-calculator",
-    title: "Loan EMI Calculator",
-    desc: "Calculate monthly loan EMI payments, total interest, and payback breakdown.",
-    category: "finance",
-    href: "/tools/emi-calculator",
-    color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:border-indigo-400",
-    badge: "Finance",
-    icon: Calculator,
-  },
-];
+export default function BillionDollarHomePage() {
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-export default function HomePage() {
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-
-  const filtered = ILOVEPDF_TOOLS.filter((t) => {
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.desc.toLowerCase().includes(search.toLowerCase());
-    const matchesTab = activeTab === "all" || t.category === activeTab;
-    return matchesSearch && matchesTab;
+  const filteredTools = ALL_TOOLS.filter((tool) => {
+    const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory;
+    const matchesSearch =
+      tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
-      <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <span className="font-extrabold text-xl text-white">
-              Tool<span className="text-red-500">Nova</span>
-            </span>
-          </Link>
+    <div className="min-h-screen bg-white dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans tracking-tight antialiased selection:bg-blue-600 selection:text-white">
+      <Navbar />
 
-          <Link
-            href="/tools/image-crop"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-950"
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-20 overflow-hidden">
+        {/* Background Glow Orbs */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-blue-500/10 via-purple-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
+
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8 text-center">
+          
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-blue-600 dark:text-blue-400 shadow-xs"
           >
-            Launch Image Studio
-          </Link>
-        </div>
-      </header>
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            100% Client-Side Privacy • Zero Server Uploads
+          </motion.div>
 
-      <main className="max-w-7xl mx-auto px-4 pt-10 pb-16 space-y-8">
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-red-400">
-            iLovePDF + 11zon + Online2PDF Super Workspace
-          </span>
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            Every tool you need to work with <br />
-            <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">
-              PDFs & Images in One Place
+          {/* Heading */}
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] text-slate-900 dark:text-white max-w-4xl mx-auto"
+          >
+            Every digital tool you need. <br />
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Built for speed & privacy.
             </span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
-            100% free, unlimited, and processed locally on your browser for ultimate privacy.
-          </p>
-        </div>
+          </motion.h1>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-5xl mx-auto pt-2">
-          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
-            {["all", "pdf", "image", "finance"].map((tab) => (
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed"
+          >
+            Professional-grade PDF, Image, AI, and Developer utilities. Process files instantly in your browser without latency or privacy compromises.
+          </motion.p>
+
+          {/* Search Bar Input */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="max-w-xl mx-auto pt-4"
+          >
+            <div className="relative group">
+              <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5 group-focus-within:text-blue-600 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search 100+ utilities (e.g. compress pdf, passport maker, ocr)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 text-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 shadow-lg shadow-slate-200/50 dark:shadow-none transition-all"
+              />
+            </div>
+          </motion.div>
+
+        </div>
+      </section>
+
+      {/* Main Workspace Section */}
+      <section className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-28 space-y-8">
+        
+        {/* Category Pills Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200/80 dark:border-slate-800">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = selectedCategory === cat.id;
+            return (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === tab
-                    ? "bg-red-600 text-white shadow-lg shadow-red-950"
-                    : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                    : "bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                {tab}
+                <Icon className="w-3.5 h-3.5" />
+                {cat.name}
               </button>
-            ))}
-          </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              placeholder="Search tool..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-red-500"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto pt-4">
-          {filtered.map((t) => {
-            const Icon = t.icon;
-            return (
-              <Link
-                key={t.id}
-                href={t.href}
-                className={`p-6 rounded-2xl bg-slate-900/80 border transition-all duration-200 flex flex-col justify-between group hover:-translate-y-1 ${t.color}`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-slate-300 uppercase">
-                      {t.badge}
-                    </span>
-                  </div>
-
-                  <h3 className="text-base font-extrabold text-white group-hover:text-red-400 transition-colors">
-                    {t.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                    {t.desc}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-red-400">
-                  <span>Open Utility</span>
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
             );
           })}
         </div>
-      </main>
 
-      <footer className="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} ToolNova. Built for speed and privacy.</p>
+        {/* Tools Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredTools.map((tool, idx) => (
+            <ToolCard key={tool.id} tool={tool} index={idx} />
+          ))}
+        </div>
+
+        {filteredTools.length === 0 && (
+          <div className="text-center py-16 space-y-3">
+            <p className="text-base font-bold text-slate-700 dark:text-slate-300">No utility found matching "{searchQuery}"</p>
+            <p className="text-xs text-slate-500">Try searching for "PDF", "Compress", or "Image Studio".</p>
+          </div>
+        )}
+
+      </section>
+
+      {/* Feature Highlights Section */}
+      <section className="border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 py-20">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Why Engineers & Professionals Choose ToolNova
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Architecture engineered for privacy, zero latency, and production reliability.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 shadow-xs">
+              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">100% Local Browser Engine</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Your PDF and image files never leave your device. All calculations, compression, and image rendering happen client-side.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 shadow-xs">
+              <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
+                <Zap className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Zero Latency Executions</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                No server queues or upload delays. Enjoy instant output rendering powered by WebAssembly and client-side workers.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 shadow-xs">
+              <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
+                <Globe2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Unlimited Free Access</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                No subscription traps, no hidden file limits, and no intrusive watermarks. Built to remain genuinely free forever.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#030712] py-8 text-xs text-slate-500 dark:text-slate-400">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>© {new Date().getFullYear()} ToolNova Engineering. Built with Next.js 16 & Tailwind v4.</p>
+          <div className="flex items-center gap-6 font-semibold">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" /> Systems Operational
+            </span>
+          </div>
+        </div>
       </footer>
+
     </div>
   );
 }
