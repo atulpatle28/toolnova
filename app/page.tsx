@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/layout/Navbar";
 import {
   FileText,
   Image as ImageIcon,
@@ -14,7 +13,7 @@ import {
   Crop,
   ArrowRight,
   ShieldCheck,
-  Zap,
+  Wrench,
 } from "lucide-react";
 
 type Category = "All" | "Organize" | "Optimize" | "Convert" | "Image Studio";
@@ -123,7 +122,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar />
+      {/* Header / Navbar */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tight">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-blue-500/20">
+              <Wrench className="w-5 h-5 text-white" />
+            </div>
+            <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              ToolKraft
+            </span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+            <Link href="/" className="hover:text-white transition-colors">
+              All Tools
+            </Link>
+          </nav>
+        </div>
+      </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
