@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ToolKraft | Free Online PDF & Image Utility Suite",
-  description:
-    "Fast, private & powerful client-side web utility tools. Compress, merge, split, and convert PDFs and images with zero server logs.",
+  title: "ToolKraft | Free Online Utility Suite",
+  description: "Private client-side tools for PDFs and images.",
 };
 
 export default function RootLayout({
@@ -14,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-slate-950 text-slate-100 min-h-screen">
+      <body className="bg-slate-950 text-slate-100 antialiased">
         {children}
       </body>
     </html>
