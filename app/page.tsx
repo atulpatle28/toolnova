@@ -14,6 +14,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Wrench,
+  ChevronDown,
+  Lock,
+  Zap,
+  Globe,
 } from "lucide-react";
 
 type Category = "All" | "Organize" | "Optimize" | "Convert" | "Image Studio";
@@ -113,15 +117,63 @@ const categories: Category[] = [
   "Image Studio",
 ];
 
+const faqs = [
+  {
+    question: "Is ToolKraft completely free to use?",
+    answer:
+      "Yes, ToolKraft is 100% free with no hidden fees, subscriptions, or file processing limits.",
+  },
+  {
+    question: "Are my files uploaded to any server?",
+    answer:
+      "No. ToolKraft operates entirely on client-side Web APIs and JavaScript in your browser. Your files never leave your computer or phone.",
+  },
+  {
+    question: "Do I need to create an account to process PDFs or images?",
+    answer:
+      "No sign-up or registration is required. You can instantly access and use all PDF and image utilities.",
+  },
+  {
+    question: "Does ToolKraft work offline or on mobile devices?",
+    answer:
+      "Yes, because all operations run directly inside your modern browser, ToolKraft works seamlessly on desktops, tablets, and smartphones.",
+  },
+];
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const filteredTools = tools.filter((tool) =>
     tool.category.includes(activeCategory)
   );
 
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
+  // Structured Data / Schema for Google SEO
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {/* Schema Injection for Search Engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Header / Navbar */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -137,6 +189,12 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
             <Link href="/" className="hover:text-white transition-colors">
               All Tools
+            </Link>
+            <Link href="#faqs" className="hover:text-white transition-colors">
+              FAQ
+            </Link>
+            <Link href="#about-seo" className="hover:text-white transition-colors">
+              About
             </Link>
           </nav>
         </div>
@@ -174,7 +232,7 @@ export default function Home() {
         </div>
 
         {/* Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
           {filteredTools.map((tool) => {
             const Icon = tool.icon;
             return (
@@ -210,6 +268,65 @@ export default function Home() {
             );
           })}
         </div>
+
+        {/* Feature Highlights Section for SEO */}
+        <section id="about-seo" className="mb-20 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+            <Lock className="w-8 h-8 text-blue-500 mb-4" />
+            <h3 className="text-lg font-bold mb-2">Zero Server Uploads</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Every document compression, merge, and image editing task happens strictly locally in your browser DOM.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+            <Zap className="w-8 h-8 text-blue-500 mb-4" />
+            <h3 className="text-lg font-bold mb-2">Lightning Fast Processing</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Skip waiting for large network uploads or server queues. Process multi-megabyte PDFs in milliseconds.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+            <Globe className="w-8 h-8 text-blue-500 mb-4" />
+            <h3 className="text-lg font-bold mb-2">Universal Compatibility</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Built on modern browser standards. Access ToolKraft seamlessly on Mac, Windows, iOS, and Android.
+            </p>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faqs" className="max-w-3xl mx-auto mb-16">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Frequently Asked Questions</h2>
+            <p className="text-slate-400 text-sm">Everything you need to know about ToolKraft privacy and usage.</p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <div
+                key={index}
+                className="rounded-2xl bg-slate-900/60 border border-slate-800/80 overflow-hidden"
+              >
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full px-6 py-4 text-left flex items-center justify-between font-semibold text-slate-200 hover:text-white transition-colors"
+                >
+                  <span>{faq.question}</span>
+                  <ChevronDown
+                    className={`w-5 h-5 text-slate-400 transition-transform ${
+                      openFaq === index ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {openFaq === index && (
+                  <div className="px-6 pb-4 text-sm text-slate-400 leading-relaxed border-t border-slate-800/40 pt-3">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
