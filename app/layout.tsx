@@ -1,55 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import "react-advanced-cropper/dist/style.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://toolnova.dev"),
-  title: {
-    default: "ToolNova | 100+ Free Online Tools",
-    template: "%s | ToolNova",
-  },
+  title: "ToolKraft | Free Online PDF & Image Utility Suite",
   description:
-    "ToolNova offers fast, modern and SEO-friendly online tools for calculations, image editing, PDFs and more.",
-  keywords: ["online tools", "calculators", "image tools", "PDF tools", "free tools"],
-  alternates: {
-    canonical: "https://toolnova.dev",
-  },
-  openGraph: {
-    title: "ToolNova | 100+ Free Online Tools",
-    description: "Modern utility website with calculators, image tools, PDF utilities and QR generation.",
-    url: "https://toolnova.dev",
-    siteName: "ToolNova",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "ToolNova | 100+ Free Online Tools",
-    description: "Modern utility website with calculators, image tools, PDF utilities and QR generation.",
-  },
+    "Fast, private & powerful client-side web utility tools. Compress, merge, split, and convert PDFs and images with zero server logs.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body className="antialiased bg-slate-950 text-slate-100 min-h-screen">
+        {children}
+      </body>
     </html>
   );
 }
