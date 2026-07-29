@@ -2,25 +2,43 @@
 
 import React, { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Upload, Download, Sparkles, Move, Trash2, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Upload,
+  Download,
+  Sparkles,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Type,
+  Move,
+  Trash2,
+  Sliders,
+} from "lucide-react";
 
 interface EditableBox {
   id: number;
   text: string;
   x: number;
   y: number;
-  width: number;
   fontSize: number;
   font: string;
+  bgColor: string;
+  textColor: string;
 }
 
 export default function EditorStudio() {
   const [image, setImage] = useState<string | null>(null);
   const [boxes, setBoxes] = useState<EditableBox[]>([]);
+  const [zoom, setZoom] = useState<number>(1); // Zoom level 0.5x to 2x
+
+  // Extended Font Collection for English and Marathi / Devanagari
   const [selectedFont, setSelectedFont] = useState("'Mukta', sans-serif");
   const [fontSize, setFontSize] = useState<number>(14);
+  const [bgColor, setBgColor] = useState<string>("#FFFFFF");
+  const [textColor, setTextColor] = useState<string>("#000000");
   const [activeBoxId, setActiveBoxId] = useState<number | null>(null);
-  
+
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -28,10 +46,19 @@ export default function EditorStudio() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const fontOptions = [
-    { name: "Mukta (Marathi/Devanagari)", value: "'Mukta', sans-serif" },
-    { name: "Baloo 2 (Marathi/Devanagari)", value: "'Baloo 2', cursive" },
-    { name: "Poppins (English/Hindi)", value: "'Poppins', sans-serif" },
-    { name: "Arial / Sans-serif", value: "Arial, sans-serif" },
+    // Marathi / Devanagari Fonts
+    { name: "Mukta (Marathi Regular)", value: "'Mukta', sans-serif" },
+    { name: "Baloo 2 (Marathi Bold/Stylized)", value: "'Baloo 2', cursive" },
+    { name: "Yatra One (Marathi Vintage)", value: "'Yatra One', cursive" },
+    { name: "Rozha One (Marathi Serif/Bold)", value: "'Rozha One', serif" },
+    { name: "Gotu (Marathi Modern)", value: "'Gotu', sans-serif" },
+
+    // English & Standard Fonts
+    { name: "Poppins (Clean Modern)", value: "'Poppins', sans-serif" },
+    { name: "Inter (Corporate)", value: "'Inter', sans-serif" },
+    { name: "Roboto (Standard)", value: "'Roboto', sans-serif" },
+    { name: "Times / Serif (Official)", value: "Georgia, serif" },
+    { name: "Monospace (Typewriter)", value: "monospace" },
   ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,26 +68,35 @@ export default function EditorStudio() {
       reader.onload = (event) => {
         setImage(event.target?.result as string);
         setBoxes([]);
+        setZoom(1);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Add Box on Click
+  // Zoom Handlers
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 2.5));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
+  const handleZoomReset = () => setZoom(1);
+
+  // Add Box on Image Click
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    
+    // Adjust coordinates according to zoom level
+    const clickX = (e.clientX - rect.left) / zoom;
+    const clickY = (e.clientY - rect.top) / zoom;
 
     const newBox: EditableBox = {
       id: Date.now(),
       text: "नवा मजकूर",
       x: Math.max(0, clickX - 40),
       y: Math.max(0, clickY - 12),
-      width: 130,
       fontSize: fontSize,
       font: selectedFont,
+      bgColor: bgColor,
+      textColor: textColor,
     };
 
     setBoxes((prev) => [...prev, newBox]);
@@ -75,8 +111,8 @@ export default function EditorStudio() {
     const box = boxes.find((b) => b.id === id);
     if (box) {
       setDragOffset({
-        x: e.clientX - box.x,
-        y: e.clientY - box.y,
+        x: (e.clientX / zoom) - box.x,
+        y: (e.clientY / zoom) - box.y,
       });
     }
   };
@@ -84,11 +120,16 @@ export default function EditorStudio() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || activeBoxId === null || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const newX = e.clientX - rect.left - dragOffset.x;
-    const newY = e.clientY - rect.top - dragOffset.y;
+    
+    const newX = (e.clientX - rect.left) / zoom - dragOffset.x;
+    const newY = (e.clientY - rect.top) / zoom - dragOffset.y;
 
     setBoxes((prev) =>
-      prev.map((b) => (b.id === activeBoxId ? { ...b, x: Math.max(0, newX), y: Math.max(0, newY) } : b))
+      prev.map((b) =>
+        b.id === activeBoxId
+          ? { ...b, x: Math.max(0, newX), y: Math.max(0, newY) }
+          : b
+      )
     );
   };
 
@@ -105,7 +146,7 @@ export default function EditorStudio() {
     if (activeBoxId === id) setActiveBoxId(null);
   };
 
-  // Export & Download High-Res Result
+  // Canvas High-Res Export Engine
   const exportDocument = () => {
     if (!image || !imgRef.current) return;
 
@@ -118,33 +159,33 @@ export default function EditorStudio() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Draw background document
+      // Draw original background image
       ctx.drawImage(img, 0, 0);
 
-      // Scale ratios
+      // Scaling relative to display image natural bounds
       const scaleX = img.naturalWidth / imgRef.current!.clientWidth;
       const scaleY = img.naturalHeight / imgRef.current!.clientHeight;
 
-      // Render each box with solid whiteout background & custom font text
       boxes.forEach((box) => {
         const renderX = box.x * scaleX;
         const renderY = box.y * scaleY;
         const renderFontSize = box.fontSize * scaleY;
-        const renderWidth = box.width * scaleX;
-        const renderHeight = (box.fontSize + 12) * scaleY;
 
-        // White background patch to cover original text
-        ctx.fillStyle = "#FFFFFF";
+        ctx.font = `${renderFontSize}px ${box.font.split(",")[0].replace(/'/g, "")}, sans-serif`;
+        const textMetrics = ctx.measureText(box.text);
+        const renderWidth = textMetrics.width + 16 * scaleX;
+        const renderHeight = (box.fontSize + 10) * scaleY;
+
+        // Solid Whiteout background patch
+        ctx.fillStyle = box.bgColor;
         ctx.fillRect(renderX, renderY, renderWidth, renderHeight);
 
-        // Draw Text
-        ctx.fillStyle = "#000000";
-        ctx.font = `${renderFontSize}px ${box.font.split(",")[0].replace(/'/g, "")}, sans-serif`;
+        // Render custom colored text
+        ctx.fillStyle = box.textColor;
         ctx.textBaseline = "top";
-        ctx.fillText(box.text, renderX + 4 * scaleX, renderY + 4 * scaleY);
+        ctx.fillText(box.text, renderX + 6 * scaleX, renderY + 4 * scaleY);
       });
 
-      // Download
       const link = document.createElement("a");
       link.download = `Edited-Document-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -155,49 +196,81 @@ export default function EditorStudio() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col select-none">
-      <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
-          <ArrowLeft className="w-4 h-4" /> Back to Tools
+      {/* Top Bar */}
+      <header className="border-b border-slate-800 bg-slate-950/90 px-6 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md">
+        <Link href="/" className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white">
+          <ArrowLeft className="w-4 h-4" /> Exit Studio
         </Link>
-        <h1 className="font-bold text-lg flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-500" /> Document Text Editor
+        <h1 className="font-bold text-sm sm:text-base flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-500" /> Paint 3D Studio & Document Editor
         </h1>
         <button
           onClick={exportDocument}
           disabled={!image}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-xs font-semibold flex items-center gap-2"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/20"
         >
-          <Download className="w-4 h-4" /> Save Result
+          <Download className="w-4 h-4" /> Save Final Image
         </button>
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-        {/* Left Sidebar Controls */}
-        <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5">
+        {/* Left Toolbar */}
+        <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 h-fit">
           <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block">1. Choose Document Image</label>
+            <label className="text-xs font-semibold text-slate-400 mb-2 block">1. Open Form / Certificate</label>
             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-upload" />
             <label
               htmlFor="file-upload"
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer text-sm font-medium transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer text-xs font-semibold transition-all"
             >
-              <Upload className="w-4 h-4 text-blue-400" /> Choose Image
+              <Upload className="w-4 h-4 text-blue-400" /> Upload Document
             </label>
           </div>
 
           {image && (
             <>
+              {/* Zoom Controls Bar */}
               <div>
-                <label className="text-xs font-semibold text-slate-400 mb-2 block">2. Text Font Style</label>
+                <label className="text-xs font-semibold text-slate-400 mb-2 block">2. Canvas Zoom ({Math.round(zoom * 100)}%)</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleZoomOut}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 text-slate-300"
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleZoomIn}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 text-slate-300"
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleZoomReset}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 text-xs text-slate-300 flex items-center gap-1"
+                    title="Reset Zoom"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> 100%
+                  </button>
+                </div>
+              </div>
+
+              {/* Comprehensive Font Selector */}
+              <div>
+                <label className="text-xs font-semibold text-slate-400 mb-2 block">3. Font Style Suite</label>
                 <select
                   value={selectedFont}
                   onChange={(e) => {
                     setSelectedFont(e.target.value);
                     if (activeBoxId !== null) {
-                      setBoxes((prev) => prev.map((b) => (b.id === activeBoxId ? { ...b, font: e.target.value } : b)));
+                      setBoxes((prev) =>
+                        prev.map((b) => (b.id === activeBoxId ? { ...b, font: e.target.value } : b))
+                      );
                     }
                   }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   {fontOptions.map((f) => (
                     <option key={f.name} value={f.value}>
@@ -207,50 +280,86 @@ export default function EditorStudio() {
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-400 mb-2 block">3. Font Size: {fontSize}px</label>
-                <input
-                  type="range"
-                  min="10"
-                  max="32"
-                  value={fontSize}
-                  onChange={(e) => {
-                    const newSize = Number(e.target.value);
-                    setFontSize(newSize);
-                    if (activeBoxId !== null) {
-                      setBoxes((prev) => prev.map((b) => (b.id === activeBoxId ? { ...b, fontSize: newSize } : b)));
-                    }
-                  }}
-                  className="w-full accent-blue-500"
-                />
-              </div>
+              {/* Size and Color Customization */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 mb-1 block">Font Size: {fontSize}px</label>
+                  <input
+                    type="range"
+                    min="8"
+                    max="36"
+                    value={fontSize}
+                    onChange={(e) => {
+                      const newSize = Number(e.target.value);
+                      setFontSize(newSize);
+                      if (activeBoxId !== null) {
+                        setBoxes((prev) =>
+                          prev.map((b) => (b.id === activeBoxId ? { ...b, fontSize: newSize } : b))
+                        );
+                      }
+                    }}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
 
-              <div className="p-3 bg-blue-950/40 border border-blue-800/50 rounded-xl text-xs text-blue-300 space-y-1">
-                <p>👉 <b>Click image</b> to add a text patch.</p>
-                <p>👉 <b>Drag handle (⠿)</b> to move text anywhere.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-400 mb-1 block">Patch Fill Color</label>
+                    <input
+                      type="color"
+                      value={bgColor}
+                      onChange={(e) => {
+                        setBgColor(e.target.value);
+                        if (activeBoxId !== null) {
+                          setBoxes((prev) =>
+                            prev.map((b) => (b.id === activeBoxId ? { ...b, bgColor: e.target.value } : b))
+                          );
+                        }
+                      }}
+                      className="w-full h-8 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-400 mb-1 block">Text Color</label>
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => {
+                        setTextColor(e.target.value);
+                        if (activeBoxId !== null) {
+                          setBoxes((prev) =>
+                            prev.map((b) => (b.id === activeBoxId ? { ...b, textColor: e.target.value } : b))
+                          );
+                        }
+                      }}
+                      className="w-full h-8 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Right Workspace */}
-        <div className="lg:col-span-3 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-center relative overflow-auto min-h-[550px]">
+        {/* Right Canvas Editor Workspace */}
+        <div className="lg:col-span-3 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-center relative overflow-auto min-h-[600px] max-h-[80vh]">
           {image ? (
             <div
               ref={containerRef}
               onClick={handleImageClick}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              className="relative inline-block border border-slate-700 rounded-lg overflow-hidden cursor-crosshair"
+              className="relative inline-block border border-slate-700/80 rounded-lg overflow-visible cursor-crosshair origin-top-left transition-transform duration-100"
+              style={{ transform: `scale(${zoom})` }}
             >
               <img
                 ref={imgRef}
                 src={image}
                 alt="Document preview"
-                className="max-w-full max-h-[75vh] object-contain block select-none pointer-events-none"
+                className="max-w-full max-h-[70vh] object-contain block select-none pointer-events-none"
               />
 
-              {/* Editable Boxes with White Patching & Drag */}
+              {/* Editable Text Patches */}
               {boxes.map((box) => (
                 <div
                   key={box.id}
@@ -258,20 +367,22 @@ export default function EditorStudio() {
                     e.stopPropagation();
                     setActiveBoxId(box.id);
                   }}
-                  className={`absolute bg-white text-black border shadow-lg flex items-center rounded px-1 transition-shadow ${
-                    activeBoxId === box.id ? "ring-2 ring-blue-500 border-blue-500 z-30" : "border-slate-300 z-20"
+                  className={`absolute shadow-md flex items-center rounded px-1 transition-all ${
+                    activeBoxId === box.id
+                      ? "ring-2 ring-blue-500 border border-blue-500 z-30"
+                      : "border border-slate-300 z-20"
                   }`}
                   style={{
                     left: `${box.x}px`,
                     top: `${box.y}px`,
-                    minWidth: `${box.width}px`,
+                    backgroundColor: box.bgColor,
                   }}
                 >
                   {/* Drag Handle */}
                   <span
                     onMouseDown={(e) => handleMouseDown(e, box.id)}
-                    className="cursor-move text-slate-400 hover:text-black pr-1 select-none"
-                    title="Drag to move"
+                    className="cursor-move text-slate-400 hover:text-black pr-1 select-none text-xs"
+                    title="Drag to position"
                   >
                     ⠿
                   </span>
@@ -281,21 +392,22 @@ export default function EditorStudio() {
                     type="text"
                     value={box.text}
                     onChange={(e) => updateBoxText(box.id, e.target.value)}
-                    className="w-full bg-white text-black focus:outline-none font-medium px-1"
+                    className="bg-transparent focus:outline-none font-medium px-1 min-w-[60px]"
                     style={{
                       fontFamily: box.font,
                       fontSize: `${box.fontSize}px`,
+                      color: box.textColor,
                     }}
                   />
 
-                  {/* Remove Handle */}
+                  {/* Delete Patch Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteBox(box.id);
                     }}
-                    className="text-slate-400 hover:text-red-600 font-bold text-sm px-1"
-                    title="Delete Patch"
+                    className="text-slate-400 hover:text-red-600 font-bold text-xs px-1"
+                    title="Remove Patch"
                   >
                     ×
                   </button>
@@ -304,7 +416,7 @@ export default function EditorStudio() {
             </div>
           ) : (
             <div className="text-center text-slate-500 text-sm">
-              Upload a document image to start editing text directly.
+              Upload a document image to start editing and patching text.
             </div>
           )}
         </div>
