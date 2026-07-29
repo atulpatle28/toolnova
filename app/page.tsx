@@ -18,7 +18,6 @@ import {
   Lock,
   Zap,
   Globe,
-  Sparkles,
 } from "lucide-react";
 
 type Category = "All" | "Organize" | "Optimize" | "Convert" | "Image Studio" | "AI & OCR";
@@ -35,7 +34,6 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  
   {
     id: "pdf-compressor",
     name: "PDF Compressor",
@@ -127,11 +125,6 @@ const faqs = [
       "Yes, ToolKraft is 100% free with no hidden fees, subscriptions, or file processing limits.",
   },
   {
-    question: "Can I edit Marathi and English text in images?",
-    answer:
-      "Yes! Our Smart Image & Text Editor supports OCR recognition for both English and Marathi (Devanagari) fonts like Mukta and Baloo 2 directly in your browser.",
-  },
-  {
     question: "Are my files uploaded to any server?",
     answer:
       "No. ToolKraft operates entirely on client-side Web APIs and JavaScript in your browser. Your files never leave your computer or phone.",
@@ -210,7 +203,7 @@ export default function Home() {
             Power Up Your Files with <span className="text-blue-500">ToolKraft</span>
           </h1>
           <p className="text-slate-400 text-base sm:text-lg">
-            High-performance browser tools for PDFs, Images & OCR Text Editing (English + Marathi). Process your files instantly with complete privacy.
+            High-performance browser tools for PDFs and Images. Process your files instantly with complete privacy.
           </p>
         </section>
 
