@@ -1,34 +1,35 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { createWorker } from "tesseract.js";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Upload, Type, Download, Loader2, Sparkles, Edit3 } from "lucide-react";
+import { ArrowLeft, Upload, Download, Sparkles, Eraser, Type, Undo, RotateCcw } from "lucide-react";
 
-interface DetectedText {
+interface TextOverlay {
   id: number;
   text: string;
   x: number;
   y: number;
-  width: number;
-  height: number;
-  font: string;
+  fontSize: number;
+  fontFamily: string;
+  color: string;
 }
 
 export default function EditorStudio() {
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
-  const [textItems, setTextItems] = useState<DetectedText[]>([]);
-  const [selectedFont, setSelectedFont] = useState("'Baloo 2', cursive");
-  const [activeTextId, setActiveTextId] = useState<number | null>(null);
-  
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [activeTool, setActiveTool] = useState<"brush" | "text" | "select">("text");
+  const [brushSize, setBrushSize] = useState<number>(20);
+  const [selectedFont, setSelectedFont] = useState<string>("'Mukta', sans-serif");
+  const [fontSize, setFontSize] = useState<number>(18);
+  const [inputText, setInputText] = useState<string>("");
+  const [textLayers, setTextLayers] = useState<TextOverlay[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [history, setHistory] = useState<ImageData[]>([]);
 
   const fontOptions = [
-    { name: "Baloo 2 (Marathi/Devanagari)", value: "'Baloo 2', cursive" },
     { name: "Mukta (Marathi/Devanagari)", value: "'Mukta', sans-serif" },
+    { name: "Baloo 2 (Marathi/Devanagari)", value: "'Baloo 2', cursive" },
     { name: "Poppins (English/Hindi)", value: "'Poppins', sans-serif" },
     { name: "Arial / Sans-serif", value: "Arial, sans-serif" },
   ];
@@ -38,76 +39,140 @@ export default function EditorStudio() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = canvasRef.current;
+          if (canvas) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              saveState();
+            }
+          }
+        };
+        img.src = event.target?.result as string;
         setImage(event.target?.result as string);
-        setTextItems([]);
-        setStatus("");
-        setActiveTextId(null);
+        setTextLayers([]);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const processImageText = async () => {
-    if (!image || !imgRef.current) return;
-    setLoading(true);
-    setStatus("Scanning Marathi & English Text...");
-
-    try {
-      const worker = await createWorker("eng+mar");
-      const ret = await worker.recognize(image);
-      const pageData = ret.data as any;
-
-      // Calculate Scaling Ratio between original image size and display size
-      const naturalWidth = imgRef.current.naturalWidth || 1;
-      const naturalHeight = imgRef.current.naturalHeight || 1;
-      const displayWidth = imgRef.current.clientWidth || 1;
-      const displayHeight = imgRef.current.clientHeight || 1;
-
-      const scaleX = displayWidth / naturalWidth;
-      const scaleY = displayHeight / naturalHeight;
-
-      const rawWords = pageData.words || pageData.blocks?.flatMap((b: any) => b.paragraphs?.flatMap((p: any) => p.lines?.flatMap((l: any) => l.words))) || [];
-
-      const parsedItems: DetectedText[] = rawWords
-        .filter((w: any) => w && w.text && w.text.trim().length > 0 && w.bbox)
-        .slice(0, 40) // Process top detected words for smooth performance
-        .map((w: any, index: number) => ({
-          id: index,
-          text: w.text,
-          x: w.bbox.x0 * scaleX,
-          y: w.bbox.y0 * scaleY,
-          width: (w.bbox.x1 - w.bbox.x0) * scaleX,
-          height: (w.bbox.y1 - w.bbox.y0) * scaleY,
-          font: selectedFont,
-        }));
-
-      setTextItems(parsedItems);
-      setStatus(`Detected ${parsedItems.length} Editable Text Elements!`);
-      await worker.terminate();
-    } catch (error) {
-      console.error(error);
-      setStatus("Error running OCR on image.");
-    } finally {
-      setLoading(false);
+  const saveState = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        setHistory((prev) => [...prev, ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+      }
     }
   };
 
-  const updateTextValue = (id: number, newText: string) => {
-    setTextItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, text: newText } : item))
-    );
+  const undoState = () => {
+    if (history.length > 1) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const newHistory = [...history];
+          newHistory.pop(); // remove current state
+          const prevState = newHistory[newHistory.length - 1];
+          ctx.putImageData(prevState, 0, 0);
+          setHistory(newHistory);
+        }
+      }
+    }
   };
 
-  const updateFontForSelected = (fontValue: string) => {
-    setSelectedFont(fontValue);
-    if (activeTextId !== null) {
-      setTextItems((prev) =>
-        prev.map((item) => (item.id === activeTextId ? { ...item, font: fontValue } : item))
-      );
-    } else {
-      // Apply to all if none selected
-      setTextItems((prev) => prev.map((item) => ({ ...item, font: fontValue })));
+  // Canvas Drawing / White Eraser Paint Functions
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== "brush") return;
+    setIsDrawing(true);
+    draw(e);
+  };
+
+  const stopDrawing = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      saveState();
     }
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || activeTool !== "brush") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    ctx.fillStyle = "#FFFFFF"; // Paint White to cover old text
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Add Custom Text Layer
+  const addTextToCanvas = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== "text" || !inputText.trim()) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    const newLayer: TextOverlay = {
+      id: Date.now(),
+      text: inputText,
+      x,
+      y,
+      fontSize,
+      fontFamily: selectedFont,
+      color: "#000000",
+    };
+
+    setTextLayers((prev) => [...prev, newLayer]);
+    setInputText("");
+  };
+
+  // Export Combined Canvas + Text
+  const exportImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Create export temporary canvas
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = canvas.width;
+    exportCanvas.height = canvas.height;
+    const ctx = exportCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Draw current canvas background
+    ctx.drawImage(canvas, 0, 0);
+
+    // Render all text layers
+    textLayers.forEach((layer) => {
+      ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
+      ctx.fillStyle = layer.color;
+      ctx.fillText(layer.text, layer.x, layer.y);
+    });
+
+    const link = document.createElement("a");
+    link.download = "Edited-Document-ToolKraft.png";
+    link.href = exportCanvas.toDataURL("image/png");
+    link.click();
   };
 
   return (
@@ -117,134 +182,161 @@ export default function EditorStudio() {
           <ArrowLeft className="w-4 h-4" /> Back to Tools
         </Link>
         <h1 className="font-bold text-lg flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-500" /> Smart Image & Text Editor
+          <Sparkles className="w-5 h-5 text-blue-500" /> Paint & Document Editor Studio
         </h1>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <Download className="w-4 h-4" /> Export Result
+        <button
+          onClick={exportImage}
+          disabled={!image}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-xs font-semibold flex items-center gap-2"
+        >
+          <Download className="w-4 h-4" /> Download Edited Result
         </button>
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-        {/* Left Sidebar Controls */}
-        <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
+        {/* Controls Panel */}
+        <div className="lg:col-span-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5">
           <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block">1. Choose Image / Form</label>
+            <label className="text-xs font-semibold text-slate-400 mb-2 block">1. Select Document / Form</label>
             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-upload" />
             <label
               htmlFor="file-upload"
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer text-sm font-medium transition-all"
             >
-              <Upload className="w-4 h-4 text-blue-400" /> Choose File
+              <Upload className="w-4 h-4 text-blue-400" /> Choose Document Image
             </label>
           </div>
 
           {image && (
-            <button
-              onClick={processImageText}
-              disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Type className="w-4 h-4" />}
-              Auto-Detect Text (EN + MAR)
-            </button>
-          )}
-
-          <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block">2. Select Active Font Family</label>
-            <select
-              value={selectedFont}
-              onChange={(e) => updateFontForSelected(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-white"
-            >
-              {fontOptions.map((font) => (
-                <option key={font.name} value={font.value}>
-                  {font.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {status && (
-            <div className="p-3 bg-slate-800/80 rounded-xl text-xs text-blue-400 border border-slate-700">
-              {status}
-            </div>
-          )}
-
-          {/* Editable Items List View */}
-          {textItems.length > 0 && (
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="text-xs font-semibold text-slate-400">3. Detected Editable Text Items ({textItems.length}):</label>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {textItems.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => setActiveTextId(item.id)}
-                    className={`p-2 rounded-lg border text-xs flex flex-col gap-1 cursor-pointer transition-all ${
-                      activeTextId === item.id
-                        ? "bg-blue-900/40 border-blue-500"
-                        : "bg-slate-800/40 border-slate-700 hover:border-slate-600"
+            <>
+              {/* Tool Selector */}
+              <div>
+                <label className="text-xs font-semibold text-slate-400 mb-2 block">2. Choose Editing Tool</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setActiveTool("brush")}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border ${
+                      activeTool === "brush" ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-800 border-slate-700 text-slate-400"
                     }`}
                   >
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Item #{item.id + 1}</span>
-                      <span className="text-blue-400">{item.font.split(",")[0]}</span>
-                    </div>
+                    <Eraser className="w-4 h-4" /> White Brush
+                  </button>
+                  <button
+                    onClick={() => setActiveTool("text")}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border ${
+                      activeTool === "text" ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-800 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <Type className="w-4 h-4" /> Add Text
+                  </button>
+                </div>
+              </div>
+
+              {/* White Brush Size Control */}
+              {activeTool === "brush" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 mb-2 block">Whiteout Size: {brushSize}px</label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="60"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+              )}
+
+              {/* Text Layer Inputs */}
+              {activeTool === "text" && (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-1 block">Text To Insert (Marathi/English):</label>
                     <input
                       type="text"
-                      value={item.text}
-                      onChange={(e) => updateTextValue(item.id, e.target.value)}
-                      className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-400"
-                      style={{ fontFamily: item.font }}
+                      placeholder="उदा. संतोषकुमार / Marriage Certificate"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      style={{ fontFamily: selectedFont }}
                     />
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-1 block">Select Font Style:</label>
+                    <select
+                      value={selectedFont}
+                      onChange={(e) => setSelectedFont(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                    >
+                      {fontOptions.map((f) => (
+                        <option key={f.name} value={f.value}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-1 block">Font Size: {fontSize}px</label>
+                    <input
+                      type="range"
+                      min="10"
+                      max="60"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(Number(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 bg-blue-900/30 p-2 rounded-lg border border-blue-800/50">
+                    💡 Click anywhere on the image to place this text!
+                  </p>
+                </div>
+              )}
+
+              {/* Undo Actions */}
+              <button
+                onClick={undoState}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700"
+              >
+                <Undo className="w-4 h-4" /> Undo Last Action
+              </button>
+            </>
           )}
         </div>
 
-        {/* Right Main Canvas Display */}
+        {/* Workspace Canvas Area */}
         <div className="lg:col-span-3 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-center relative overflow-auto min-h-[550px]">
           {image ? (
-            <div ref={containerRef} className="relative inline-block border border-slate-700 rounded-lg overflow-hidden max-w-full">
-              <img
-                ref={imgRef}
-                src={image}
-                alt="Document preview"
-                className="max-w-full max-h-[75vh] object-contain block"
+            <div className="relative border border-slate-700 rounded-lg overflow-hidden max-w-full">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseUp={stopDrawing}
+                onMouseMove={draw}
+                onClick={addTextToCanvas}
+                className={`max-w-full h-auto cursor-${activeTool === "brush" ? "crosshair" : "text"}`}
               />
 
-              {/* Direct Overlay Editable Text Boxes */}
-              {textItems.map((item) => (
+              {/* Rendered Overlay Texts */}
+              {textLayers.map((layer) => (
                 <div
-                  key={item.id}
-                  onClick={() => setActiveTextId(item.id)}
-                  className={`absolute rounded px-1 flex items-center shadow-lg transition-all ${
-                    activeTextId === item.id
-                      ? "ring-2 ring-blue-400 bg-slate-950 text-white z-30"
-                      : "bg-slate-950/90 text-yellow-300 border border-blue-500/80 z-20 hover:scale-105"
-                  }`}
+                  key={layer.id}
+                  className="absolute pointer-events-none text-black font-semibold"
                   style={{
-                    left: `${item.x}px`,
-                    top: `${item.y}px`,
-                    minWidth: `${Math.max(item.width, 40)}px`,
-                    minHeight: `${Math.max(item.height, 20)}px`,
+                    left: `${layer.x}px`,
+                    top: `${layer.y}px`,
+                    fontSize: `${layer.fontSize}px`,
+                    fontFamily: layer.fontFamily,
                   }}
                 >
-                  <input
-                    type="text"
-                    value={item.text}
-                    onChange={(e) => updateTextValue(item.id, e.target.value)}
-                    className="w-full bg-transparent text-xs text-white focus:outline-none font-bold"
-                    style={{ fontFamily: item.font }}
-                  />
-                  <Edit3 className="w-3 h-3 text-blue-400 ml-1 shrink-0" />
+                  {layer.text}
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center text-slate-500 text-sm">
-              Upload an image or form document to start editing text.
+              Upload a form or document to whiteout text and insert new Marathi/English fonts.
             </div>
           )}
         </div>
