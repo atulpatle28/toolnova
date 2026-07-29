@@ -11,18 +11,15 @@ import {
   ZoomOut,
   RotateCcw,
   Type,
-  Paintbrush,
-  Square,
-  Box,
+  MousePointer,
   Sliders,
   Bold,
   Italic,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Eye,
+  Eraser,
   Trash2,
-  Move,
 } from "lucide-react";
 
 interface TextLayer {
@@ -34,6 +31,7 @@ interface TextLayer {
   fontFamily: string;
   textColor: string;
   bgColor: string;
+  isTransparentBg: boolean;
   isBold: boolean;
   isItalic: boolean;
   align: "left" | "center" | "right";
@@ -41,21 +39,21 @@ interface TextLayer {
 
 export default function Paint3DEditorStudio() {
   const [image, setImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"text" | "brushes" | "canvas">("text");
+  const [activeTab, setActiveTab] = useState<"text" | "select" | "eraser">("text");
 
-  // Paint 3D Canvas State
+  // Canvas Zoom State
   const [zoom, setZoom] = useState<number>(1);
-  const [showCanvasBg, setShowCanvasBg] = useState<boolean>(true);
 
-  // Text Layers
+  // Layers & Selection
   const [layers, setLayers] = useState<TextLayer[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<number | null>(null);
 
-  // Active Tool Properties (Paint 3D Right Panel)
+  // Paint 3D Right Properties Panel
   const [fontFamily, setFontFamily] = useState<string>("'Mukta', sans-serif");
-  const [fontSize, setFontSize] = useState<number>(16);
+  const [fontSize, setFontSize] = useState<number>(18);
   const [textColor, setTextColor] = useState<string>("#000000");
   const [bgColor, setBgColor] = useState<string>("#FFFFFF");
+  const [isTransparentBg, setIsTransparentBg] = useState<boolean>(true); // Default Transparent
   const [isBold, setIsBold] = useState<boolean>(false);
   const [isItalic, setIsItalic] = useState<boolean>(false);
   const [align, setAlign] = useState<"left" | "center" | "right">("left");
@@ -67,22 +65,28 @@ export default function Paint3DEditorStudio() {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Paint 3D Font Collection (English + Complete Devanagari Suite)
+  // Paint 3D Fonts
   const fontSuite = [
-    { group: "Marathi / Devanagari", fonts: [
-      { name: "Mukta (Standard)", value: "'Mukta', sans-serif" },
-      { name: "Baloo 2 (Modern Bold)", value: "'Baloo 2', cursive" },
-      { name: "Yatra One (Calligraphy/Vintage)", value: "'Yatra One', cursive" },
-      { name: "Rozha One (Traditional Serif)", value: "'Rozha One', serif" },
-      { name: "Gotu (Clean Sans)", value: "'Gotu', sans-serif" },
-    ]},
-    { group: "English & Universal", fonts: [
-      { name: "Poppins (Modern)", value: "'Poppins', sans-serif" },
-      { name: "Inter (UI Clean)", value: "'Inter', sans-serif" },
-      { name: "Arial (Standard)", value: "Arial, sans-serif" },
-      { name: "Times New Roman (Official)", value: "'Times New Roman', serif" },
-      { name: "Courier New (Monospace)", value: "'Courier New', monospace" },
-    ]}
+    {
+      group: "Marathi / Devanagari",
+      fonts: [
+        { name: "Mukta (Standard)", value: "'Mukta', sans-serif" },
+        { name: "Baloo 2 (Modern Bold)", value: "'Baloo 2', cursive" },
+        { name: "Yatra One (Calligraphy)", value: "'Yatra One', cursive" },
+        { name: "Rozha One (Serif)", value: "'Rozha One', serif" },
+        { name: "Gotu (Clean)", value: "'Gotu', sans-serif" },
+      ],
+    },
+    {
+      group: "English & Universal",
+      fonts: [
+        { name: "Poppins (Modern)", value: "'Poppins', sans-serif" },
+        { name: "Inter (UI Clean)", value: "'Inter', sans-serif" },
+        { name: "Arial (Standard)", value: "Arial, sans-serif" },
+        { name: "Times New Roman (Official)", value: "'Times New Roman', serif" },
+        { name: "Courier New (Monospace)", value: "'Courier New', monospace" },
+      ],
+    },
   ];
 
   // File Upload
@@ -99,22 +103,23 @@ export default function Paint3DEditorStudio() {
     }
   };
 
-  // Add New Text Box on Canvas Click
+  // Canvas Click (Add Text Layer)
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging || !image) return;
+    if (isDragging || !image || activeTab !== "text") return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / zoom;
     const clickY = (e.clientY - rect.top) / zoom;
 
     const newLayer: TextLayer = {
       id: Date.now(),
-      text: "नवा मजकूर / Edit Text",
-      x: Math.max(10, clickX - 50),
+      text: "नवा मजकूर",
+      x: Math.max(10, clickX - 40),
       y: Math.max(10, clickY - 15),
       fontSize,
       fontFamily,
       textColor,
       bgColor,
+      isTransparentBg,
       isBold,
       isItalic,
       align,
@@ -124,16 +129,17 @@ export default function Paint3DEditorStudio() {
     setActiveLayerId(newLayer.id);
   };
 
-  // Dragging Logic
+  // Drag Handlers
   const handleMouseDown = (e: React.MouseEvent, id: number) => {
+    if (activeTab === "text") return;
     e.stopPropagation();
     setActiveLayerId(id);
     setIsDragging(true);
     const layer = layers.find((l) => l.id === id);
     if (layer) {
       setDragOffset({
-        x: (e.clientX / zoom) - layer.x,
-        y: (e.clientY / zoom) - layer.y,
+        x: e.clientX / zoom - layer.x,
+        y: e.clientY / zoom - layer.y,
       });
     }
   };
@@ -141,8 +147,8 @@ export default function Paint3DEditorStudio() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || activeLayerId === null || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const newX = (e.clientX - rect.left) / zoom - dragOffset.x;
-    const newY = (e.clientY - rect.top) / zoom - dragOffset.y;
+    const newX = e.clientX / zoom - rect.left / zoom - dragOffset.x;
+    const newY = e.clientY / zoom - rect.top / zoom - dragOffset.y;
 
     setLayers((prev) =>
       prev.map((l) => (l.id === activeLayerId ? { ...l, x: Math.max(0, newX), y: Math.max(0, newY) } : l))
@@ -153,7 +159,7 @@ export default function Paint3DEditorStudio() {
     setIsDragging(false);
   };
 
-  // Update Properties of Currently Selected Layer
+  // Update Layer Properties
   const updateActiveLayer = (key: keyof TextLayer, value: any) => {
     if (activeLayerId !== null) {
       setLayers((prev) =>
@@ -167,7 +173,7 @@ export default function Paint3DEditorStudio() {
     if (activeLayerId === id) setActiveLayerId(null);
   };
 
-  // High Resolution Paint 3D Export Engine
+  // High Res Paint 3D Export Engine
   const exportPaint3DDocument = () => {
     if (!image || !imgRef.current) return;
 
@@ -180,7 +186,7 @@ export default function Paint3DEditorStudio() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Render background document
+      // Draw original image
       ctx.drawImage(img, 0, 0);
 
       const scaleX = img.naturalWidth / imgRef.current!.clientWidth;
@@ -195,38 +201,40 @@ export default function Paint3DEditorStudio() {
         ctx.font = fontStyle;
 
         const textMetrics = ctx.measureText(layer.text);
-        const renderWidth = textMetrics.width + 16 * scaleX;
-        const renderHeight = (layer.fontSize + 12) * scaleY;
+        const renderWidth = textMetrics.width + 12 * scaleX;
+        const renderHeight = (layer.fontSize + 10) * scaleY;
 
-        // Draw solid background patch to hide original text
-        ctx.fillStyle = layer.bgColor;
-        ctx.fillRect(renderX, renderY, renderWidth, renderHeight);
+        // Solid patch if background is NOT transparent
+        if (!layer.isTransparentBg) {
+          ctx.fillStyle = layer.bgColor;
+          ctx.fillRect(renderX, renderY, renderWidth, renderHeight);
+        }
 
-        // Draw overlay text
+        // Draw text
         ctx.fillStyle = layer.textColor;
         ctx.textBaseline = "top";
-        ctx.fillText(layer.text, renderX + 6 * scaleX, renderY + 4 * scaleY);
+        ctx.fillText(layer.text, renderX + 4 * scaleX, renderY + 3 * scaleY);
       });
 
       const link = document.createElement("a");
-      link.download = `Paint3D-ToolKraft-${Date.now()}.png`;
+      link.download = `Paint3D-Edited-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
     img.src = image;
   };
 
-  const activeLayer = layers.find((l) => l.id === activeLayerId);
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col select-none font-sans">
-      {/* 1. PAINT 3D TOP HEADER TABS */}
+      {/* 1. PAINT 3D TOP BAR */}
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between z-50">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-xs text-slate-400 hover:text-white flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> Exit
           </Link>
           <div className="h-4 w-[1px] bg-slate-800" />
+          
+          {/* Paint 3D Mode Selector */}
           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTab("text")}
@@ -234,23 +242,15 @@ export default function Paint3DEditorStudio() {
                 activeTab === "text" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
               }`}
             >
-              <Type className="w-3.5 h-3.5" /> Text
+              <Type className="w-3.5 h-3.5" /> Text Mode
             </button>
             <button
-              onClick={() => setActiveTab("brushes")}
+              onClick={() => setActiveTab("select")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-                activeTab === "brushes" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
+                activeTab === "select" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
               }`}
             >
-              <Paintbrush className="w-3.5 h-3.5" /> Brushes
-            </button>
-            <button
-              onClick={() => setActiveTab("canvas")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-                activeTab === "canvas" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Square className="w-3.5 h-3.5" /> Canvas
+              <MousePointer className="w-3.5 h-3.5" /> Select & Move
             </button>
           </div>
         </div>
@@ -268,12 +268,12 @@ export default function Paint3DEditorStudio() {
             disabled={!image}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
           >
-            <Download className="w-3.5 h-3.5" /> Save
+            <Download className="w-3.5 h-3.5" /> Save Image
           </button>
         </div>
       </header>
 
-      {/* 2. MAIN WORKSPACE WITH RIGHT PROPERTY PANEL */}
+      {/* 2. MAIN WORKSPACE */}
       <div className="flex-1 flex overflow-hidden">
         {/* CENTER CANVAS VIEWPORT */}
         <div className="flex-1 bg-slate-950 p-6 flex items-center justify-center relative overflow-auto">
@@ -283,7 +283,9 @@ export default function Paint3DEditorStudio() {
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              className="relative inline-block border border-slate-800 rounded-lg shadow-2xl overflow-visible cursor-crosshair origin-center transition-transform duration-150"
+              className={`relative inline-block border border-slate-800 rounded-lg shadow-2xl overflow-visible origin-center transition-transform duration-150 ${
+                activeTab === "text" ? "cursor-text" : "cursor-default"
+              }`}
               style={{ transform: `scale(${zoom})` }}
             >
               <img
@@ -293,7 +295,7 @@ export default function Paint3DEditorStudio() {
                 className="max-w-full max-h-[72vh] object-contain block pointer-events-none select-none"
               />
 
-              {/* RENDER ACTIVE TEXT LAYERS */}
+              {/* RENDER CLEAN TRANSPARENT TEXT LAYERS */}
               {layers.map((layer) => {
                 const isSelected = activeLayerId === layer.id;
                 return (
@@ -306,28 +308,23 @@ export default function Paint3DEditorStudio() {
                       setFontSize(layer.fontSize);
                       setTextColor(layer.textColor);
                       setBgColor(layer.bgColor);
+                      setIsTransparentBg(layer.isTransparentBg);
                       setIsBold(layer.isBold);
                       setIsItalic(layer.isItalic);
                     }}
-                    className={`absolute shadow-lg flex items-center rounded px-1 transition-all ${
-                      isSelected ? "ring-2 ring-blue-500 border border-blue-400 z-30" : "border border-slate-300 z-20"
+                    onMouseDown={(e) => handleMouseDown(e, layer.id)}
+                    className={`absolute flex items-center rounded transition-all ${
+                      isSelected && activeTab === "select"
+                        ? "border-2 border-dashed border-blue-500 ring-2 ring-blue-500/30 z-30"
+                        : "border border-transparent z-20"
                     }`}
                     style={{
                       left: `${layer.x}px`,
                       top: `${layer.y}px`,
-                      backgroundColor: layer.bgColor,
+                      backgroundColor: layer.isTransparentBg ? "transparent" : layer.bgColor,
                     }}
                   >
-                    {/* Drag Handle */}
-                    <span
-                      onMouseDown={(e) => handleMouseDown(e, layer.id)}
-                      className="cursor-move text-slate-400 hover:text-black pr-1 text-xs select-none"
-                      title="Drag to Move"
-                    >
-                      ⠿
-                    </span>
-
-                    {/* Editable Text Input */}
+                    {/* Editable Transparent Input */}
                     <input
                       type="text"
                       value={layer.text}
@@ -335,7 +332,7 @@ export default function Paint3DEditorStudio() {
                         const val = e.target.value;
                         setLayers((prev) => prev.map((l) => (l.id === layer.id ? { ...l, text: val } : l)));
                       }}
-                      className="bg-transparent focus:outline-none font-medium px-1 min-w-[50px]"
+                      className="bg-transparent focus:outline-none font-medium px-1 min-w-[40px]"
                       style={{
                         fontFamily: layer.fontFamily,
                         fontSize: `${layer.fontSize}px`,
@@ -346,17 +343,19 @@ export default function Paint3DEditorStudio() {
                       }}
                     />
 
-                    {/* Delete Layer */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteLayer(layer.id);
-                      }}
-                      className="text-slate-400 hover:text-red-600 text-xs font-bold px-1"
-                      title="Remove Box"
-                    >
-                      ×
-                    </button>
+                    {/* Delete Handle in Select Mode */}
+                    {isSelected && activeTab === "select" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteLayer(layer.id);
+                        }}
+                        className="text-white bg-red-600 hover:bg-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold ml-1 cursor-pointer"
+                        title="Remove Box"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -367,7 +366,7 @@ export default function Paint3DEditorStudio() {
             </div>
           )}
 
-          {/* CANVAS BOTTOM CONTROL TOOLBAR (Paint 3D Zoom Bar) */}
+          {/* ZOOM TOOLBAR */}
           {image && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-800 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-3 shadow-2xl z-40">
               <button onClick={() => setZoom((prev) => Math.max(0.5, prev - 0.1))} className="text-slate-400 hover:text-white">
@@ -387,7 +386,7 @@ export default function Paint3DEditorStudio() {
           )}
         </div>
 
-        {/* 3. PAINT 3D RIGHT PROPERTY SIDEBAR */}
+        {/* 3. RIGHT PAINT 3D PROPERTY PANEL */}
         <div className="w-80 bg-slate-900 border-l border-slate-800 p-5 flex flex-col gap-6 overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h2 className="text-sm font-bold flex items-center gap-2">
@@ -428,7 +427,7 @@ export default function Paint3DEditorStudio() {
             <input
               type="range"
               min="10"
-              max="48"
+              max="54"
               value={fontSize}
               onChange={(e) => {
                 const val = Number(e.target.value);
@@ -439,7 +438,7 @@ export default function Paint3DEditorStudio() {
             />
           </div>
 
-          {/* Formatting Controls (Bold, Italic, Alignments) */}
+          {/* Formatting Controls */}
           <div>
             <label className="text-xs font-semibold text-slate-400 mb-2 block">Formatting</label>
             <div className="grid grid-cols-5 gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700">
@@ -503,7 +502,7 @@ export default function Paint3DEditorStudio() {
             </div>
           </div>
 
-          {/* Color Palettes (Paint 3D Fill & Text Color) */}
+          {/* Color Palettes & Background Fill Toggle */}
           <div className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Text Color</label>
@@ -522,26 +521,41 @@ export default function Paint3DEditorStudio() {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Background Patch Fill (Whiteout)</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setBgColor(val);
-                    updateActiveLayer("bgColor", val);
+            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300">Background Fill</span>
+                <button
+                  onClick={() => {
+                    const val = !isTransparentBg;
+                    setIsTransparentBg(val);
+                    updateActiveLayer("isTransparentBg", val);
                   }}
-                  className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 cursor-pointer"
-                />
-                <span className="text-xs font-mono text-slate-300">{bgColor.toUpperCase()}</span>
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    isTransparentBg
+                      ? "bg-emerald-600/30 text-emerald-400 border border-emerald-500/40"
+                      : "bg-blue-600 text-white"
+                  }`}
+                >
+                  {isTransparentBg ? "Transparent" : "Solid Color"}
+                </button>
               </div>
-            </div>
-          </div>
 
-          <div className="mt-auto p-3 bg-blue-950/40 border border-blue-800/50 rounded-xl text-xs text-blue-300">
-            💡 <b>Paint 3D Tip:</b> Document image par jahan click karenge, exact usi location par text patch create ho jayega. Right panel se font, color aur background patch control kar sakte hain.
+              {!isTransparentBg && (
+                <div className="flex items-center gap-3 pt-1">
+                  <input
+                    type="color"
+                    value={bgColor}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setBgColor(val);
+                      updateActiveLayer("bgColor", val);
+                    }}
+                    className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
+                  />
+                  <span className="text-xs font-mono text-slate-400">{bgColor.toUpperCase()}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
