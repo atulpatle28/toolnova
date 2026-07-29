@@ -35,16 +35,7 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  {
-    id: "editor-studio",
-    name: "Smart Image & Text Editor",
-    description: "Detect and edit English & Marathi text inside images and documents using matching fonts.",
-    icon: Sparkles,
-    href: "/tools/editor-studio",
-    category: ["All", "Image Studio", "AI & OCR"],
-    badge: "🔥 New Feature",
-    featured: true,
-  },
+  
   {
     id: "pdf-compressor",
     name: "PDF Compressor",
