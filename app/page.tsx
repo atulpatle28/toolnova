@@ -18,9 +18,10 @@ import {
   Lock,
   Zap,
   Globe,
+  Sparkles,
 } from "lucide-react";
 
-type Category = "All" | "Organize" | "Optimize" | "Convert" | "Image Studio";
+type Category = "All" | "Organize" | "Optimize" | "Convert" | "Image Studio" | "AI & OCR";
 
 interface Tool {
   id: string;
@@ -30,9 +31,20 @@ interface Tool {
   href: string;
   category: Category[];
   badge?: string;
+  featured?: boolean;
 }
 
 const tools: Tool[] = [
+  {
+    id: "editor-studio",
+    name: "Smart Image & Text Editor",
+    description: "Detect and edit English & Marathi text inside images and documents using matching fonts.",
+    icon: Sparkles,
+    href: "/tools/editor-studio",
+    category: ["All", "Image Studio", "AI & OCR"],
+    badge: "🔥 New Feature",
+    featured: true,
+  },
   {
     id: "pdf-compressor",
     name: "PDF Compressor",
@@ -105,12 +117,12 @@ const tools: Tool[] = [
     icon: Crop,
     href: "/tools/image-crop",
     category: ["All", "Image Studio"],
-    badge: "New",
   },
 ];
 
 const categories: Category[] = [
   "All",
+  "AI & OCR",
   "Organize",
   "Optimize",
   "Convert",
@@ -124,6 +136,11 @@ const faqs = [
       "Yes, ToolKraft is 100% free with no hidden fees, subscriptions, or file processing limits.",
   },
   {
+    question: "Can I edit Marathi and English text in images?",
+    answer:
+      "Yes! Our Smart Image & Text Editor supports OCR recognition for both English and Marathi (Devanagari) fonts like Mukta and Baloo 2 directly in your browser.",
+  },
+  {
     question: "Are my files uploaded to any server?",
     answer:
       "No. ToolKraft operates entirely on client-side Web APIs and JavaScript in your browser. Your files never leave your computer or phone.",
@@ -132,11 +149,6 @@ const faqs = [
     question: "Do I need to create an account to process PDFs or images?",
     answer:
       "No sign-up or registration is required. You can instantly access and use all PDF and image utilities.",
-  },
-  {
-    question: "Does ToolKraft work offline or on mobile devices?",
-    answer:
-      "Yes, because all operations run directly inside your modern browser, ToolKraft works seamlessly on desktops, tablets, and smartphones.",
   },
 ];
 
@@ -152,7 +164,6 @@ export default function Home() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  // Structured Data / Schema for Google SEO
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -168,13 +179,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Schema Injection for Search Engines */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      {/* Header / Navbar */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tight">
@@ -210,7 +219,7 @@ export default function Home() {
             Power Up Your Files with <span className="text-blue-500">ToolKraft</span>
           </h1>
           <p className="text-slate-400 text-base sm:text-lg">
-            High-performance browser tools for PDFs & Images. Process your files instantly with complete privacy — nothing ever leaves your device.
+            High-performance browser tools for PDFs, Images & OCR Text Editing (English + Marathi). Process your files instantly with complete privacy.
           </p>
         </section>
 
@@ -239,20 +248,42 @@ export default function Home() {
               <Link
                 key={tool.id}
                 href={tool.href}
-                className="group relative p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-blue-500/50 hover:bg-slate-900 transition-all flex flex-col justify-between"
+                className={`group relative p-6 rounded-2xl transition-all flex flex-col justify-between ${
+                  tool.featured
+                    ? "bg-gradient-to-b from-blue-900/40 via-slate-900 to-slate-900 border-2 border-blue-500/80 shadow-xl shadow-blue-500/10 md:col-span-2 lg:col-span-3"
+                    : "bg-slate-900/60 border border-slate-800/80 hover:border-blue-500/50 hover:bg-slate-900"
+                }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                        tool.featured
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                          : "bg-blue-500/10 text-blue-400 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white"
+                      }`}
+                    >
                       <Icon className="w-6 h-6" />
                     </div>
                     {tool.badge && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                          tool.featured
+                            ? "bg-blue-500 text-white border-blue-400 animate-pulse"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        }`}
+                      >
                         {tool.badge}
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                  <h3
+                    className={`font-bold mb-2 transition-colors ${
+                      tool.featured
+                        ? "text-2xl text-white group-hover:text-blue-300"
+                        : "text-lg text-white group-hover:text-blue-400"
+                    }`}
+                  >
                     {tool.name}
                   </h3>
                   <p className="text-slate-400 text-sm leading-relaxed mb-6">
@@ -329,7 +360,6 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} ToolKraft. Private, client-side web utility suite.</p>
       </footer>
