@@ -83,7 +83,7 @@ function ElevenZonPdfCompressorPage() {
       console.warn("Native stream check skipped");
     }
 
-    // Attempt 2: Canvas Image Rendering (Only if slider is high and file allows it)
+    // Attempt 2: Canvas Image Rendering (FIXED RESOLUTION & QUALITY)
     try {
       const pdfjsLib = await import("pdfjs-dist");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -92,35 +92,37 @@ function ElevenZonPdfCompressorPage() {
       const srcPdf = await loadingTask.promise;
       const newPdfDoc = await PDFDocument.create();
 
-      const jpegQuality = Math.max(0.1, (100 - level * 0.85) / 100);
-      const renderScale = level > 80 ? 0.7 : 0.9;
+      // Dynamic Scale & Quality calculation based on slider
+      const renderScale = Math.max(0.5, 1.2 - (level / 100) * 0.7); // Scale ranges from ~1.2 down to 0.5
+      const jpegQuality = Math.max(0.15, (100 - level) / 100);       // Quality ranges from 0.85 down to 0.15
 
       for (let i = 1; i <= srcPdf.numPages; i++) {
         const page = await srcPdf.getPage(i);
-        const viewport = page.getViewport({ scale: renderScale });
+        
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const renderViewport = page.getViewport({ scale: renderScale });
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
+        canvas.width = Math.floor(renderViewport.width);
+        canvas.height = Math.floor(renderViewport.height);
 
         if (ctx) {
           await page.render({
             canvasContext: ctx,
-            viewport: viewport,
-            canvas: canvas,
+            viewport: renderViewport,
           }).promise;
 
           const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
           const jpegBytes = await fetch(jpegUrl).then((r) => r.arrayBuffer());
 
           const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
-          const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+          const pdfPage = newPdfDoc.addPage([unscaledViewport.width, unscaledViewport.height]);
           pdfPage.drawImage(embeddedJpg, {
             x: 0,
             y: 0,
-            width: viewport.width,
-            height: viewport.height,
+            width: unscaledViewport.width,
+            height: unscaledViewport.height,
           });
         }
 
@@ -134,16 +136,16 @@ function ElevenZonPdfCompressorPage() {
         bestBlob = canvasBlob;
       }
     } catch (err) {
-      console.warn("Canvas compression failed");
+      console.warn("Canvas compression failed", err);
     }
 
-    // 11zon Guard Check: If best output is still bigger or equal to original file, stop!
+    // 11zon Guard Check: If output size is still bigger or equal to original, revert!
     if (!bestBlob || bestBlob.size >= item.file.size) {
       const origBlob = new Blob([arrayBuffer], { type: "application/pdf" });
       return {
         url: URL.createObjectURL(origBlob),
         sizeKB: item.originalSizeKB,
-        notCompressible: true, // Mark as Not Compressible like 11zon
+        notCompressible: true,
       };
     }
 
