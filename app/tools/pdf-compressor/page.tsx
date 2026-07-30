@@ -62,67 +62,90 @@ function ElevenZonPdfCompressorPage() {
     level: number,
     onProgress: (percent: number) => void
   ): Promise<{ url: string; sizeKB: number }> => {
-    const pdfjsLib = await import("pdfjs-dist");
-    
-    // In-line worker blob creation to avoid CORS / CDN Blocking completely
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
     const { PDFDocument } = await import("pdf-lib");
-
     const arrayBuffer = await item.file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const srcPdf = await loadingTask.promise;
 
-    const newPdfDoc = await PDFDocument.create();
-    const numPages = srcPdf.numPages;
+    // Strategy 1: Fast & Native PDF Stream Compression (Best for Text PDFs)
+    const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+    const nativeBytes = await srcDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    });
 
-    // Quality mapping: Level 10% -> 0.85 quality, Level 90% -> 0.25 quality
-    const jpegQuality = Math.max(0.15, Math.min(0.85, (100 - level * 0.8) / 100));
-    const renderScale = level > 70 ? 1.0 : 1.2; // Adjust resolution for size savings
-
-    for (let i = 1; i <= numPages; i++) {
-      const page = await srcPdf.getPage(i);
-      const viewport = page.getViewport({ scale: renderScale });
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      
-      // Exact canvas dimensions matching the page viewport (Fixes cropping/half cut)
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-
-      if (ctx) {
-        await page.render({
-          canvasContext: ctx,
-          viewport: viewport,
-          canvas: canvas,
-        }).promise;
-
-        const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
-        const jpegBytes = await fetch(jpegUrl).then((res) => res.arrayBuffer());
-
-        const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
-        
-        // Add page with original viewport dimensions (NO CUTTING)
-        const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
-        pdfPage.drawImage(embeddedJpg, {
-          x: 0,
-          y: 0,
-          width: viewport.width,
-          height: viewport.height,
-        });
-      }
-
-      onProgress(Math.round((i / numPages) * 100));
-    }
-
-    const compressedBytes = await newPdfDoc.save({ useObjectStreams: true });
-    const blob = new Blob([compressedBytes.buffer as ArrayBuffer], {
+    const nativeBlob = new Blob([nativeBytes.buffer as ArrayBuffer], {
       type: "application/pdf",
     });
 
-    const sizeKB = Math.round(blob.size / 1024);
-    const url = URL.createObjectURL(blob);
+    let bestBlob = nativeBlob;
+
+    // Strategy 2: If Slider is high or file has heavy images, run canvas optimization
+    if (level > 40) {
+      try {
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const srcPdf = await loadingTask.promise;
+        const newPdfDoc = await PDFDocument.create();
+
+        // Calculate quality based on slider
+        const jpegQuality = Math.max(0.2, (100 - level * 0.7) / 100);
+        const renderScale = level > 75 ? 0.8 : 1.0;
+
+        for (let i = 1; i <= srcPdf.numPages; i++) {
+          const page = await srcPdf.getPage(i);
+          const viewport = page.getViewport({ scale: renderScale });
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+
+          if (ctx) {
+            await page.render({
+              canvasContext: ctx,
+              viewport: viewport,
+              canvas: canvas,
+            }).promise;
+
+            const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
+            const jpegBytes = await fetch(jpegUrl).then((r) => r.arrayBuffer());
+
+            const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
+            const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+            pdfPage.drawImage(embeddedJpg, {
+              x: 0,
+              y: 0,
+              width: viewport.width,
+              height: viewport.height,
+            });
+          }
+
+          onProgress(Math.round((i / srcPdf.numPages) * 100));
+        }
+
+        const canvasBytes = await newPdfDoc.save({ useObjectStreams: true });
+        const canvasBlob = new Blob([canvasBytes.buffer as ArrayBuffer], {
+          type: "application/pdf",
+        });
+
+        // Pick whichever blob is SMALLEST
+        if (canvasBlob.size < bestBlob.size) {
+          bestBlob = canvasBlob;
+        }
+      } catch (err) {
+        console.warn("Canvas compression skipped, using native stream result.");
+      }
+    }
+
+    // Safety Guarantee: Never let the output size exceed original size!
+    if (bestBlob.size >= item.file.size) {
+      // Return original file if no method managed to reduce size
+      bestBlob = new Blob([arrayBuffer], { type: "application/pdf" });
+    }
+
+    const sizeKB = Math.round(bestBlob.size / 1024);
+    const url = URL.createObjectURL(bestBlob);
 
     return { url, sizeKB };
   };
@@ -150,7 +173,6 @@ function ElevenZonPdfCompressorPage() {
         updatedItems[i].compressedSizeKB = sizeKB;
       } catch (err) {
         console.error("Compression error:", err);
-        alert(`Could not compress ${updatedItems[i].file.name}. Please try a lower level or another PDF.`);
       } finally {
         updatedItems[i].isProcessing = false;
         setItems([...updatedItems]);
@@ -182,8 +204,6 @@ function ElevenZonPdfCompressorPage() {
       />
 
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        
-        {/* Top Header */}
         <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <Link
             href="/"
@@ -192,24 +212,20 @@ function ElevenZonPdfCompressorPage() {
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> Client-Side HD Compressor
+            <ShieldCheck className="w-4 h-4" /> Hybrid PDF Compressor
           </span>
         </div>
 
-        {/* Title */}
         <div className="text-center space-y-2 max-w-2xl mx-auto">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
             Target Size PDF Compressor
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Shrink PDFs to custom KB/MB file size limits without page cutting or dimension loss.
+            Shrink PDFs to custom KB/MB file size limits guaranteed without size inflation.
           </p>
         </div>
 
-        {/* Workspace */}
         <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-          
-          {/* Slider and Compress Header */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
               <SlidersHorizontal className="w-4 h-4 text-blue-600" />
@@ -219,8 +235,8 @@ function ElevenZonPdfCompressorPage() {
             <div className="flex items-center gap-4 w-full sm:w-auto flex-1 max-w-md px-2">
               <input
                 type="range"
-                min="20"
-                max="80"
+                min="10"
+                max="90"
                 value={compressionLevel}
                 onChange={(e) => setCompressionLevel(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
@@ -257,7 +273,6 @@ function ElevenZonPdfCompressorPage() {
             </div>
           </div>
 
-          {/* Cards Box / Empty Zone */}
           {items.length === 0 ? (
             <div
               onClick={() => fileInputRef.current?.click()}
@@ -316,7 +331,7 @@ function ElevenZonPdfCompressorPage() {
                       <div className="w-full space-y-1">
                         <div className="flex items-center justify-between text-xs font-bold text-blue-600">
                           <span className="flex items-center gap-1">
-                            <RefreshCw className="w-3 h-3 animate-spin" /> Rendering...
+                            <RefreshCw className="w-3 h-3 animate-spin" /> Processing...
                           </span>
                           <span>{item.progressPercent || 0}%</span>
                         </div>
