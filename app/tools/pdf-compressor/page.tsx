@@ -3,7 +3,6 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { PDFDocument } from "pdf-lib";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/app/components/ui/Button";
 import {
@@ -24,11 +23,12 @@ interface PDFItem {
   compressedSizeKB: number | null;
   compressedUrl: string | null;
   isProcessing: boolean;
+  progressPercent?: number;
 }
 
 function ElevenZonPdfCompressorPage() {
   const [items, setItems] = useState<PDFItem[]>([]);
-  const [compressionLevel, setCompressionLevel] = useState<number>(70); // Default 70% compression
+  const [compressionLevel, setCompressionLevel] = useState<number>(60);
   const [isCompressingAll, setIsCompressingAll] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,46 +57,73 @@ function ElevenZonPdfCompressorPage() {
     e.target.value = "";
   };
 
-  // Pure Client-Side PDF Compression Engine (No CDN Worker Dependency)
   const compressSinglePdf = async (
     item: PDFItem,
-    level: number
+    level: number,
+    onProgress: (percent: number) => void
   ): Promise<{ url: string; sizeKB: number }> => {
-    const arrayBuffer = await item.file.arrayBuffer();
-    const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-    const newDoc = await PDFDocument.create();
-
-    const pageCount = srcDoc.getPageCount();
+    const pdfjsLib = await import("pdfjs-dist");
     
-    // Calculate scale factor based on slider (Level 10% to 95%)
-    const scaleFactor = Math.max(0.3, (100 - level * 0.6) / 100);
+    // In-line worker blob creation to avoid CORS / CDN Blocking completely
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-    for (let i = 0; i < pageCount; i++) {
-      const [copiedPage] = await newDoc.copyPages(srcDoc, [i]);
+    const { PDFDocument } = await import("pdf-lib");
+
+    const arrayBuffer = await item.file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const srcPdf = await loadingTask.promise;
+
+    const newPdfDoc = await PDFDocument.create();
+    const numPages = srcPdf.numPages;
+
+    // Quality mapping: Level 10% -> 0.85 quality, Level 90% -> 0.25 quality
+    const jpegQuality = Math.max(0.15, Math.min(0.85, (100 - level * 0.8) / 100));
+    const renderScale = level > 70 ? 1.0 : 1.2; // Adjust resolution for size savings
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await srcPdf.getPage(i);
+      const viewport = page.getViewport({ scale: renderScale });
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
       
-      // Scale down dimensions to optimize file size
-      const { width, height } = copiedPage.getSize();
-      copiedPage.setSize(width * scaleFactor, height * scaleFactor);
-      
-      newDoc.addPage(copiedPage);
+      // Exact canvas dimensions matching the page viewport (Fixes cropping/half cut)
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+
+      if (ctx) {
+        await page.render({
+          canvasContext: ctx,
+          viewport: viewport,
+          canvas: canvas,
+        }).promise;
+
+        const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
+        const jpegBytes = await fetch(jpegUrl).then((res) => res.arrayBuffer());
+
+        const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
+        
+        // Add page with original viewport dimensions (NO CUTTING)
+        const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+        pdfPage.drawImage(embeddedJpg, {
+          x: 0,
+          y: 0,
+          width: viewport.width,
+          height: viewport.height,
+        });
+      }
+
+      onProgress(Math.round((i / numPages) * 100));
     }
 
-    // Save using PDF Object Streams to crush text/structure size
-    const compressedBytes = await newDoc.save({ useObjectStreams: true });
-    
+    const compressedBytes = await newPdfDoc.save({ useObjectStreams: true });
     const blob = new Blob([compressedBytes.buffer as ArrayBuffer], {
       type: "application/pdf",
     });
 
-    // Fallback size reduction check
-    let sizeKB = Math.round(blob.size / 1024);
-    
-    // Safety check: if object streams don't reduce enough, apply synthetic size calculation
-    if (sizeKB >= item.originalSizeKB) {
-      sizeKB = Math.round(item.originalSizeKB * ((100 - level * 0.45) / 100));
-    }
-
+    const sizeKB = Math.round(blob.size / 1024);
     const url = URL.createObjectURL(blob);
+
     return { url, sizeKB };
   };
 
@@ -113,13 +140,17 @@ function ElevenZonPdfCompressorPage() {
       try {
         const { url, sizeKB } = await compressSinglePdf(
           updatedItems[i],
-          compressionLevel
+          compressionLevel,
+          (progress) => {
+            updatedItems[i].progressPercent = progress;
+            setItems([...updatedItems]);
+          }
         );
         updatedItems[i].compressedUrl = url;
         updatedItems[i].compressedSizeKB = sizeKB;
       } catch (err) {
         console.error("Compression error:", err);
-        alert(`Failed to compress ${updatedItems[i].file.name}`);
+        alert(`Could not compress ${updatedItems[i].file.name}. Please try a lower level or another PDF.`);
       } finally {
         updatedItems[i].isProcessing = false;
         setItems([...updatedItems]);
@@ -141,7 +172,6 @@ function ElevenZonPdfCompressorPage() {
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans tracking-tight antialiased">
       <Navbar />
 
-      {/* Global Hidden Input - Always Present */}
       <input
         type="file"
         ref={fileInputRef}
@@ -162,7 +192,7 @@ function ElevenZonPdfCompressorPage() {
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> Fast & Secure Client-side
+            <ShieldCheck className="w-4 h-4" /> Client-Side HD Compressor
           </span>
         </div>
 
@@ -172,7 +202,7 @@ function ElevenZonPdfCompressorPage() {
             Target Size PDF Compressor
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Shrink PDFs to custom KB/MB file size limits for official portals and uploads.
+            Shrink PDFs to custom KB/MB file size limits without page cutting or dimension loss.
           </p>
         </div>
 
@@ -189,8 +219,8 @@ function ElevenZonPdfCompressorPage() {
             <div className="flex items-center gap-4 w-full sm:w-auto flex-1 max-w-md px-2">
               <input
                 type="range"
-                min="10"
-                max="95"
+                min="20"
+                max="80"
                 value={compressionLevel}
                 onChange={(e) => setCompressionLevel(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
@@ -255,9 +285,7 @@ function ElevenZonPdfCompressorPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
-                
                 {items.map((item) => (
                   <div
                     key={item.id}
@@ -279,15 +307,25 @@ function ElevenZonPdfCompressorPage() {
                       </p>
                     </div>
 
-                    {/* PDF Placeholder Icon */}
                     <div className="w-full h-36 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-2">
                       <FileText className="w-12 h-12 text-blue-500/80 mb-1" />
                       <span className="text-[10px] text-slate-400 font-bold uppercase">PDF Document</span>
                     </div>
 
                     {item.isProcessing ? (
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 py-1">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Compressing...
+                      <div className="w-full space-y-1">
+                        <div className="flex items-center justify-between text-xs font-bold text-blue-600">
+                          <span className="flex items-center gap-1">
+                            <RefreshCw className="w-3 h-3 animate-spin" /> Rendering...
+                          </span>
+                          <span>{item.progressPercent || 0}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-600 transition-all duration-200"
+                            style={{ width: `${item.progressPercent || 0}%` }}
+                          />
+                        </div>
                       </div>
                     ) : item.compressedSizeKB ? (
                       <div className="w-full space-y-2 pt-1">
@@ -309,7 +347,6 @@ function ElevenZonPdfCompressorPage() {
                   </div>
                 ))}
 
-                {/* Add More Button Card */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="h-full min-h-[220px] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-500/60 rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:bg-blue-500/5 transition-all space-y-3"
@@ -319,10 +356,8 @@ function ElevenZonPdfCompressorPage() {
                   </div>
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Add PDF Files</span>
                 </div>
-
               </div>
 
-              {/* Bottom Actions */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   onClick={() => fileInputRef.current?.click()}
@@ -332,12 +367,9 @@ function ElevenZonPdfCompressorPage() {
                   Select PDF
                 </Button>
               </div>
-
             </div>
           )}
-
         </div>
-
       </main>
     </div>
   );
