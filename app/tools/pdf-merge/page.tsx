@@ -31,7 +31,7 @@ function PdfMergePage() {
   const [mergedUrl, setMergedUrl] = useState<string | null>(null);
   const [mergedSizeBytes, setMergedSizeBytes] = useState<number | null>(null);
   const [rawMergedBytes, setRawMergedBytes] = useState<Uint8Array | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +100,7 @@ function PdfMergePage() {
       const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], {
         type: "application/pdf",
       });
-      
+
       setMergedSizeBytes(blob.size);
       const url = URL.createObjectURL(blob);
       setMergedUrl(url);
@@ -116,13 +116,49 @@ function PdfMergePage() {
     setIsCompressing(true);
 
     try {
-      const { PDFDocument } = await import("pdf-lib");
-      const pdfDoc = await PDFDocument.load(rawMergedBytes);
-      
-      // Save with object stream compression to reduce file size
-      const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
+      // Dynamic import to prevent SSR/build crashes with pdfjs
+      const pdfjs = await import("pdfjs-dist");
+      pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-      const blob = new Blob([compressedBytes.buffer as ArrayBuffer], {
+      const { PDFDocument } = await import("pdf-lib");
+      const compressedPdfDoc = await PDFDocument.create();
+
+      const loadingTask = pdfjs.getDocument({ data: rawMergedBytes });
+      const pdfDoc = await loadingTask.promise;
+
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: 1.0 });
+
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        if (context) {
+          await page.render({ canvasContext: context, canvas: canvas, viewport }).promise;
+          // Downscale quality to 50% JPEG image to reduce heavy MB sizes
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.5);
+          const jpegImageBytes = await fetch(jpegDataUrl).then((res) =>
+            res.arrayBuffer()
+          );
+
+          const embeddedImage = await compressedPdfDoc.embedJpg(jpegImageBytes);
+          const newPage = compressedPdfDoc.addPage([
+            viewport.width,
+            viewport.height,
+          ]);
+          newPage.drawImage(embeddedImage, {
+            x: 0,
+            y: 0,
+            width: viewport.width,
+            height: viewport.height,
+          });
+        }
+      }
+
+      const finalCompressedBytes = await compressedPdfDoc.save();
+      const blob = new Blob([finalCompressedBytes.buffer as ArrayBuffer], {
         type: "application/pdf",
       });
 
@@ -131,6 +167,7 @@ function PdfMergePage() {
       setMergedUrl(url);
     } catch (err) {
       console.error("Compression failed:", err);
+      alert("Compression error. Try again with a different PDF.");
     } finally {
       setIsCompressing(false);
     }
