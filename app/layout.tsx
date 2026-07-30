@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "ToolKraft - Free Online PDF & Image Utilities",
   description:
     "Fast, private, browser-based tools to compress PDFs, resize images, and convert formats with zero server upload.",
-  metadataBase: new URL("https://toolkraft.vercel.app"),
+  metadataBase: new URL("https://mytoolkraft.in"),
   verification: {
     google: "JVhRfyFuIT5QjEhV",
   },
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: "ToolKraft | Private Browser Tools",
     description:
       "Compress PDFs, resize images, and convert files 100% locally in your browser.",
-    url: "https://toolkraft.vercel.app",
+    url: "https://mytoolkraft.in",
     siteName: "ToolKraft",
     type: "website",
     locale: "en_US",
