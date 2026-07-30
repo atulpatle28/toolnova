@@ -20,7 +20,7 @@ import {
 // Helper function to dynamically load PDF.js only on the client side
 const getPdfJs = async () => {
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
   return pdfjsLib;
 };
 
@@ -59,7 +59,7 @@ function ElevenZonPdfCompressorPage() {
         await page.render({
           canvasContext: ctx,
           viewport,
-          canvas,
+          canvas: canvas as any,
         } as any).promise;
         return canvas.toDataURL("image/jpeg", 0.7);
       }
@@ -69,8 +69,9 @@ function ElevenZonPdfCompressorPage() {
     return null;
   };
 
-  const handleFileSelect = async (files: FileList | null) => {
-    if (!files) return;
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     const newItems: PDFItem[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -91,6 +92,8 @@ function ElevenZonPdfCompressorPage() {
     }
 
     setItems((prev) => [...prev, ...newItems]);
+    // Reset input value so same files can be re-selected if needed
+    e.target.value = "";
   };
 
   // 11zon Style Dynamic Compression Engine
@@ -117,7 +120,7 @@ function ElevenZonPdfCompressorPage() {
         await page.render({
           canvasContext: ctx,
           viewport,
-          canvas,
+          canvas: canvas as any,
         } as any).promise;
       }
 
@@ -178,6 +181,16 @@ function ElevenZonPdfCompressorPage() {
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans tracking-tight antialiased">
       <Navbar />
+
+      {/* Global Hidden File Input - Placed outside conditionals to maintain ref */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="application/pdf"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
 
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
@@ -283,15 +296,6 @@ function ElevenZonPdfCompressorPage() {
               >
                 Select PDF
               </Button>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
             </div>
           ) : (
             <div className="space-y-6">
@@ -383,15 +387,6 @@ function ElevenZonPdfCompressorPage() {
                 >
                   Select PDF
                 </Button>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="application/pdf"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                />
               </div>
 
             </div>
