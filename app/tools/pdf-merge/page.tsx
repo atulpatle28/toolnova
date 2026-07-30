@@ -29,7 +29,8 @@ function PdfMergePage() {
   const [mergedUrl, setMergedUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (selectedFiles: FileList | null) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
     if (!selectedFiles) return;
 
     const newFiles: PDFFile[] = [];
@@ -45,6 +46,9 @@ function PdfMergePage() {
     }
     setFiles((prev) => [...prev, ...newFiles]);
     setMergedUrl(null);
+
+    // Reset input value so selecting the same or adding more files triggers onChange again
+    e.target.value = "";
   };
 
   const moveFile = (index: number, direction: "up" | "down") => {
@@ -98,6 +102,16 @@ function PdfMergePage() {
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100">
       <Navbar />
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Hidden input moved outside conditional rendering */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="application/pdf"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+
         <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <Link
             href="/"
@@ -134,14 +148,6 @@ function PdfMergePage() {
                   Select 2 or more files to merge
                 </p>
               </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
             </div>
           ) : (
             <div className="space-y-4">
