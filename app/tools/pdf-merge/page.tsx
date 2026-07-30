@@ -15,6 +15,7 @@ import {
   Trash2,
   MoveUp,
   MoveDown,
+  Zap,
 } from "lucide-react";
 
 interface PDFFile {
@@ -26,7 +27,11 @@ interface PDFFile {
 function PdfMergePage() {
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isMerging, setIsMerging] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [mergedUrl, setMergedUrl] = useState<string | null>(null);
+  const [mergedSizeBytes, setMergedSizeBytes] = useState<number | null>(null);
+  const [rawMergedBytes, setRawMergedBytes] = useState<Uint8Array | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,10 +50,14 @@ function PdfMergePage() {
       }
     }
     setFiles((prev) => [...prev, ...newFiles]);
-    setMergedUrl(null);
-
-    // Reset input value so selecting the same or adding more files triggers onChange again
+    resetMergedState();
     e.target.value = "";
+  };
+
+  const resetMergedState = () => {
+    setMergedUrl(null);
+    setMergedSizeBytes(null);
+    setRawMergedBytes(null);
   };
 
   const moveFile = (index: number, direction: "up" | "down") => {
@@ -64,7 +73,7 @@ function PdfMergePage() {
 
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
-    setMergedUrl(null);
+    resetMergedState();
   };
 
   const handleMerge = async () => {
@@ -86,9 +95,13 @@ function PdfMergePage() {
       }
 
       const mergedPdfBytes = await mergedPdf.save();
+      setRawMergedBytes(mergedPdfBytes);
+
       const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], {
         type: "application/pdf",
       });
+      
+      setMergedSizeBytes(blob.size);
       const url = URL.createObjectURL(blob);
       setMergedUrl(url);
     } catch (err) {
@@ -98,11 +111,42 @@ function PdfMergePage() {
     }
   };
 
+  const handleCompress = async () => {
+    if (!rawMergedBytes) return;
+    setIsCompressing(true);
+
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const pdfDoc = await PDFDocument.load(rawMergedBytes);
+      
+      // Save with object stream compression to reduce file size
+      const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
+
+      const blob = new Blob([compressedBytes.buffer as ArrayBuffer], {
+        type: "application/pdf",
+      });
+
+      setMergedSizeBytes(blob.size);
+      const url = URL.createObjectURL(blob);
+      setMergedUrl(url);
+    } catch (err) {
+      console.error("Compression failed:", err);
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100">
       <Navbar />
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Hidden input moved outside conditional rendering */}
         <input
           type="file"
           ref={fileInputRef}
@@ -215,18 +259,40 @@ function PdfMergePage() {
                 </Button>
               </div>
 
-              {mergedUrl && (
+              {mergedUrl && mergedSizeBytes && (
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-3">
-                  <p className="text-xs font-bold text-emerald-600">
-                    PDFs Merged Successfully!
-                  </p>
-                  <a
-                    href={mergedUrl}
-                    download="merged-document.pdf"
-                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md"
-                  >
-                    <Download className="w-4 h-4" /> Download Merged PDF
-                  </a>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-xs font-bold text-emerald-600">
+                      PDFs Merged Successfully!
+                    </p>
+                    <span className="bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full">
+                      Size: {formatSize(mergedSizeBytes)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                    <a
+                      href={mergedUrl}
+                      download="merged-document.pdf"
+                      className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all"
+                    >
+                      <Download className="w-4 h-4" /> Download Merged PDF
+                    </a>
+
+                    <button
+                      onClick={handleCompress}
+                      disabled={isCompressing}
+                      className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50"
+                    >
+                      {isCompressing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4" /> Compress / Reduce Size
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
