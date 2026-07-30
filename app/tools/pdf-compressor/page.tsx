@@ -106,10 +106,11 @@ function ElevenZonPdfCompressorPage() {
         canvas.height = Math.floor(renderViewport.height);
 
         if (ctx) {
-          await page.render({
+          const renderContext = {
             canvasContext: ctx,
             viewport: renderViewport,
-          }).promise;
+          };
+          await page.render(renderContext as any).promise;
 
           const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
           const jpegBytes = await fetch(jpegUrl).then((r) => r.arrayBuffer());
@@ -398,7 +399,6 @@ function ElevenZonPdfCompressorPage() {
           )}
         </div>
 
-        {/* SEO CONTENT SECTION FOR GOOGLE RANKING */}
         <section className="max-w-4xl mx-auto space-y-8 pt-6 border-t border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300">
           <div className="space-y-3">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -425,7 +425,7 @@ function ElevenZonPdfCompressorPage() {
 
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
                 <p className="font-bold text-slate-900 dark:text-white">Is it safe to reduce PDF size here?</p>
-                <p className="text-slate-500 dark:text-slate-400">Yes! ToolKraft uses client-side WebAssembly processing. Your files remain on your device and are never uploaded to any server.</p>
+                <p className="text-slate-500 dark:text-slate-400">Yes! ToolKraft uses client-side processing. Your files remain on your device and are never uploaded to any server.</p>
               </div>
 
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
