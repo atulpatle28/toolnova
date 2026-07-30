@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   X,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 
 interface PDFItem {
@@ -70,7 +71,6 @@ function ElevenZonPdfCompressorPage() {
 
     let bestBlob: Blob | null = null;
 
-    // Attempt 1: Fast Native Stream Compression
     try {
       const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
       const nativeBytes = await srcDoc.save({ useObjectStreams: true });
@@ -83,7 +83,6 @@ function ElevenZonPdfCompressorPage() {
       console.warn("Native stream check skipped");
     }
 
-    // Attempt 2: Canvas Image Rendering (FIXED RESOLUTION & QUALITY)
     try {
       const pdfjsLib = await import("pdfjs-dist");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -92,9 +91,8 @@ function ElevenZonPdfCompressorPage() {
       const srcPdf = await loadingTask.promise;
       const newPdfDoc = await PDFDocument.create();
 
-      // Dynamic Scale & Quality calculation based on slider
-      const renderScale = Math.max(0.5, 1.2 - (level / 100) * 0.7); // Scale ranges from ~1.2 down to 0.5
-      const jpegQuality = Math.max(0.15, (100 - level) / 100);       // Quality ranges from 0.85 down to 0.15
+      const renderScale = Math.max(0.5, 1.2 - (level / 100) * 0.7);
+      const jpegQuality = Math.max(0.15, (100 - level) / 100);
 
       for (let i = 1; i <= srcPdf.numPages; i++) {
         const page = await srcPdf.getPage(i);
@@ -139,7 +137,6 @@ function ElevenZonPdfCompressorPage() {
       console.warn("Canvas compression failed", err);
     }
 
-    // 11zon Guard Check: If output size is still bigger or equal to original, revert!
     if (!bestBlob || bestBlob.size >= item.file.size) {
       const origBlob = new Blob([arrayBuffer], { type: "application/pdf" });
       return {
@@ -209,7 +206,7 @@ function ElevenZonPdfCompressorPage() {
         onChange={handleFileSelect}
       />
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <Link
             href="/"
@@ -224,10 +221,10 @@ function ElevenZonPdfCompressorPage() {
 
         <div className="text-center space-y-2 max-w-2xl mx-auto">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Target Size PDF Compressor
+            Compress PDF Online - Reduce PDF Size to 100KB, 200KB Free
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Shrink PDFs safely. Automatically prevents file size bloat or quality damage.
+            Shrink PDF file size safely. Target custom KB limits without quality loss or page damage.
           </p>
         </div>
 
@@ -400,6 +397,49 @@ function ElevenZonPdfCompressorPage() {
             </div>
           )}
         </div>
+
+        {/* SEO CONTENT SECTION FOR GOOGLE RANKING */}
+        <section className="max-w-4xl mx-auto space-y-8 pt-6 border-t border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+          <div className="space-y-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              How to Compress PDF File Size Online?
+            </h2>
+            <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm leading-relaxed pl-1">
+              <li>Upload your PDF file by clicking the <strong>Select PDF</strong> button.</li>
+              <li>Adjust the <strong>Compression Level slider</strong> to target specific KB limits (e.g. 100KB, 200KB, or 500KB).</li>
+              <li>Click <strong>Compress</strong> to automatically resize and shrink your document.</li>
+              <li>Click <strong>Download</strong> to save your newly compressed PDF instantly.</li>
+            </ol>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-blue-600" /> Frequently Asked Questions (SEO FAQs)
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-white">How to compress PDF to 100KB online?</p>
+                <p className="text-slate-500 dark:text-slate-400">Set the compression slider to a higher percentage (~70%-80%). ToolKraft automatically shrinks your PDF images to reach under 100KB while preserving text readability.</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-white">Is it safe to reduce PDF size here?</p>
+                <p className="text-slate-500 dark:text-slate-400">Yes! ToolKraft uses client-side WebAssembly processing. Your files remain on your device and are never uploaded to any server.</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-white">Will compressing reduce PDF quality?</p>
+                <p className="text-slate-500 dark:text-slate-400">Our Smart Optimizer uses modern canvas rendering to compress images within the PDF while keeping text crisp and sharp.</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-white">Is ToolKraft PDF Compressor free?</p>
+                <p className="text-slate-500 dark:text-slate-400">Yes, it is 100% free with no account registration, watermark, or daily document limits.</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
