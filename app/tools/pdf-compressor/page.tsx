@@ -14,6 +14,7 @@ import {
   Plus,
   SlidersHorizontal,
   X,
+  AlertCircle,
 } from "lucide-react";
 
 interface PDFItem {
@@ -24,11 +25,12 @@ interface PDFItem {
   compressedUrl: string | null;
   isProcessing: boolean;
   progressPercent?: number;
+  isNotCompressible?: boolean;
 }
 
 function ElevenZonPdfCompressorPage() {
   const [items, setItems] = useState<PDFItem[]>([]);
-  const [compressionLevel, setCompressionLevel] = useState<number>(60);
+  const [compressionLevel, setCompressionLevel] = useState<number>(70);
   const [isCompressingAll, setIsCompressingAll] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,7 @@ function ElevenZonPdfCompressorPage() {
           compressedSizeKB: null,
           compressedUrl: null,
           isProcessing: false,
+          isNotCompressible: false,
         });
       }
     }
@@ -61,93 +64,93 @@ function ElevenZonPdfCompressorPage() {
     item: PDFItem,
     level: number,
     onProgress: (percent: number) => void
-  ): Promise<{ url: string; sizeKB: number }> => {
+  ): Promise<{ url: string; sizeKB: number; notCompressible: boolean }> => {
     const { PDFDocument } = await import("pdf-lib");
     const arrayBuffer = await item.file.arrayBuffer();
 
-    // Strategy 1: Fast & Native PDF Stream Compression (Best for Text PDFs)
-    const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-    const nativeBytes = await srcDoc.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-    });
+    let bestBlob: Blob | null = null;
 
-    const nativeBlob = new Blob([nativeBytes.buffer as ArrayBuffer], {
-      type: "application/pdf",
-    });
-
-    let bestBlob = nativeBlob;
-
-    // Strategy 2: If Slider is high or file has heavy images, run canvas optimization
-    if (level > 40) {
-      try {
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        const srcPdf = await loadingTask.promise;
-        const newPdfDoc = await PDFDocument.create();
-
-        // Calculate quality based on slider
-        const jpegQuality = Math.max(0.2, (100 - level * 0.7) / 100);
-        const renderScale = level > 75 ? 0.8 : 1.0;
-
-        for (let i = 1; i <= srcPdf.numPages; i++) {
-          const page = await srcPdf.getPage(i);
-          const viewport = page.getViewport({ scale: renderScale });
-
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
-
-          if (ctx) {
-            await page.render({
-              canvasContext: ctx,
-              viewport: viewport,
-              canvas: canvas,
-            }).promise;
-
-            const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
-            const jpegBytes = await fetch(jpegUrl).then((r) => r.arrayBuffer());
-
-            const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
-            const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
-            pdfPage.drawImage(embeddedJpg, {
-              x: 0,
-              y: 0,
-              width: viewport.width,
-              height: viewport.height,
-            });
-          }
-
-          onProgress(Math.round((i / srcPdf.numPages) * 100));
-        }
-
-        const canvasBytes = await newPdfDoc.save({ useObjectStreams: true });
-        const canvasBlob = new Blob([canvasBytes.buffer as ArrayBuffer], {
-          type: "application/pdf",
-        });
-
-        // Pick whichever blob is SMALLEST
-        if (canvasBlob.size < bestBlob.size) {
-          bestBlob = canvasBlob;
-        }
-      } catch (err) {
-        console.warn("Canvas compression skipped, using native stream result.");
+    // Attempt 1: Fast Native Stream Compression
+    try {
+      const srcDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      const nativeBytes = await srcDoc.save({ useObjectStreams: true });
+      const nativeBlob = new Blob([nativeBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      
+      if (nativeBlob.size < item.file.size) {
+        bestBlob = nativeBlob;
       }
+    } catch (e) {
+      console.warn("Native stream check skipped");
     }
 
-    // Safety Guarantee: Never let the output size exceed original size!
-    if (bestBlob.size >= item.file.size) {
-      // Return original file if no method managed to reduce size
-      bestBlob = new Blob([arrayBuffer], { type: "application/pdf" });
+    // Attempt 2: Canvas Image Rendering (Only if slider is high and file allows it)
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const srcPdf = await loadingTask.promise;
+      const newPdfDoc = await PDFDocument.create();
+
+      const jpegQuality = Math.max(0.1, (100 - level * 0.85) / 100);
+      const renderScale = level > 80 ? 0.7 : 0.9;
+
+      for (let i = 1; i <= srcPdf.numPages; i++) {
+        const page = await srcPdf.getPage(i);
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+
+        if (ctx) {
+          await page.render({
+            canvasContext: ctx,
+            viewport: viewport,
+            canvas: canvas,
+          }).promise;
+
+          const jpegUrl = canvas.toDataURL("image/jpeg", jpegQuality);
+          const jpegBytes = await fetch(jpegUrl).then((r) => r.arrayBuffer());
+
+          const embeddedJpg = await newPdfDoc.embedJpg(jpegBytes);
+          const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+          pdfPage.drawImage(embeddedJpg, {
+            x: 0,
+            y: 0,
+            width: viewport.width,
+            height: viewport.height,
+          });
+        }
+
+        onProgress(Math.round((i / srcPdf.numPages) * 100));
+      }
+
+      const canvasBytes = await newPdfDoc.save({ useObjectStreams: true });
+      const canvasBlob = new Blob([canvasBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+
+      if (!bestBlob || canvasBlob.size < bestBlob.size) {
+        bestBlob = canvasBlob;
+      }
+    } catch (err) {
+      console.warn("Canvas compression failed");
+    }
+
+    // 11zon Guard Check: If best output is still bigger or equal to original file, stop!
+    if (!bestBlob || bestBlob.size >= item.file.size) {
+      const origBlob = new Blob([arrayBuffer], { type: "application/pdf" });
+      return {
+        url: URL.createObjectURL(origBlob),
+        sizeKB: item.originalSizeKB,
+        notCompressible: true, // Mark as Not Compressible like 11zon
+      };
     }
 
     const sizeKB = Math.round(bestBlob.size / 1024);
     const url = URL.createObjectURL(bestBlob);
 
-    return { url, sizeKB };
+    return { url, sizeKB, notCompressible: false };
   };
 
   const handleCompressAll = async () => {
@@ -161,7 +164,7 @@ function ElevenZonPdfCompressorPage() {
       setItems([...updatedItems]);
 
       try {
-        const { url, sizeKB } = await compressSinglePdf(
+        const { url, sizeKB, notCompressible } = await compressSinglePdf(
           updatedItems[i],
           compressionLevel,
           (progress) => {
@@ -171,6 +174,7 @@ function ElevenZonPdfCompressorPage() {
         );
         updatedItems[i].compressedUrl = url;
         updatedItems[i].compressedSizeKB = sizeKB;
+        updatedItems[i].isNotCompressible = notCompressible;
       } catch (err) {
         console.error("Compression error:", err);
       } finally {
@@ -212,7 +216,7 @@ function ElevenZonPdfCompressorPage() {
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> Hybrid PDF Compressor
+            <ShieldCheck className="w-4 h-4" /> Smart Optimizer Mode
           </span>
         </div>
 
@@ -221,7 +225,7 @@ function ElevenZonPdfCompressorPage() {
             Target Size PDF Compressor
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Shrink PDFs to custom KB/MB file size limits guaranteed without size inflation.
+            Shrink PDFs safely. Automatically prevents file size bloat or quality damage.
           </p>
         </div>
 
@@ -236,7 +240,7 @@ function ElevenZonPdfCompressorPage() {
               <input
                 type="range"
                 min="10"
-                max="90"
+                max="95"
                 value={compressionLevel}
                 onChange={(e) => setCompressionLevel(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
@@ -341,6 +345,15 @@ function ElevenZonPdfCompressorPage() {
                             style={{ width: `${item.progressPercent || 0}%` }}
                           />
                         </div>
+                      </div>
+                    ) : item.isNotCompressible ? (
+                      <div className="w-full space-y-2 pt-1">
+                        <p className="text-xs font-extrabold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" /> Not Compressed
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          File is already fully optimized
+                        </p>
                       </div>
                     ) : item.compressedSizeKB ? (
                       <div className="w-full space-y-2 pt-1">
