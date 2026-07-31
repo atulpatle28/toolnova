@@ -37,6 +37,10 @@ function PdfToImagePage() {
         canvas.height = viewport.height;
 
         if (ctx) {
+          // 🟢 Fix: Background ko solid white fill kiya taaki JPEG par black layer na aaye
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
           await page.render({ canvasContext: ctx, viewport } as any).promise;
           extractedImages.push(canvas.toDataURL("image/jpeg", 0.85));
         }
