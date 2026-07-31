@@ -4,7 +4,7 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
-import { ArrowLeft, Download, ShieldCheck, RefreshCw, Layers, Upload } from "lucide-react";
+import { ArrowLeft, Download, ShieldCheck, RefreshCw, Upload } from "lucide-react";
 
 function PdfToImagePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -20,32 +20,37 @@ function PdfToImagePage() {
     setImages([]);
 
     try {
+      // 🟢 Fix: PDF.js import & Worker Path Resolution
       const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
       const buffer = await selected.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const loadingTask = pdfjsLib.getDocument({ data: buffer });
+      const pdf = await loadingTask.promise;
       const extractedImages: string[] = [];
 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const viewport = page.getViewport({ scale: 2.0 }); // Crisp resolution output
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
+
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
         if (ctx) {
+          // Fill Solid White Background before rendering transparent text layer
           ctx.fillStyle = "#FFFFFF";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+
           await page.render({ canvasContext: ctx, viewport } as any).promise;
-          extractedImages.push(canvas.toDataURL("image/jpeg", 0.85));
+          extractedImages.push(canvas.toDataURL("image/jpeg", 0.9));
         }
       }
 
       setImages(extractedImages);
     } catch (e) {
-      console.error(e);
+      console.error("PDF Conversion Error:", e);
       alert("Error processing PDF file. Please try another PDF.");
     } finally {
       setIsProcessing(false);
@@ -80,7 +85,6 @@ function PdfToImagePage() {
           </p>
         </div>
 
-        {/* Outer White Box Container */}
         <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
           {!file ? (
             <div
