@@ -14,14 +14,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Wrench,
-  ChevronDown,
   Lock,
   Zap,
   Globe,
   Search,
-  Users,
-  Activity,
-  CheckCircle2,
 } from "lucide-react";
 
 type Category = "All" | "PDF Tools" | "Image Studio" | "Converters";
@@ -146,7 +142,6 @@ export default function Home() {
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
             <Link href="#tools-list" className="hover:text-emerald-400 transition-colors">Tools</Link>
-            <Link href="#stats" className="hover:text-emerald-400 transition-colors">Stats</Link>
             <Link href="#privacy" className="hover:text-emerald-400 transition-colors">Security</Link>
           </nav>
         </div>
@@ -267,63 +262,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* --- VISITOR COUNT & STATS SECTION --- */}
-        <section id="stats" className="mb-12 p-6 rounded-2xl bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-slate-900/80 border border-slate-800/80">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            
-            {/* Visitors Card */}
-            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-slate-950/50 border border-slate-800/40">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
-                <Users className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs text-slate-400 font-medium">Total Visitors</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-white">24,580+</span>
-                  <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                    Live
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Processed Files */}
-            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-slate-950/50 border border-slate-800/40">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs text-slate-400 font-medium">Files Processed</p>
-                <p className="text-xl font-black text-white">89,200+</p>
-              </div>
-            </div>
-
-            {/* Active Users */}
-            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-slate-950/50 border border-slate-800/40">
-              <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
-                <Activity className="w-5 h-5 animate-pulse" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs text-slate-400 font-medium">Active Now</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-white">142</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
       </main>
 
       <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-[#070a11]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© {new Date().getFullYear()} ToolKraft. Client-side browser utilities.</p>
-          <div className="flex items-center gap-2 text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-            <Users className="w-3.5 h-3.5 text-emerald-400" />
-            <span>24,580 Visitors Counter</span>
-          </div>
         </div>
       </footer>
     </div>
