@@ -190,7 +190,7 @@ export default function EditorMain({ initialImageSrc = null, className = "" }: E
           <div className="flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             <span className="text-[13px] font-semibold text-slate-200 tracking-wide">
-              ToolNova Workspace
+              ToolKraft Workspace
             </span>
           </div>
         </div>

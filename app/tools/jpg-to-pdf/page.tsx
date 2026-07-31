@@ -27,8 +27,9 @@ function JpgToPdfPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (files: FileList | null) => {
-    if (!files) return;
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     const newImages: ImageItem[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -41,8 +42,12 @@ function JpgToPdfPage() {
         });
       }
     }
+
     setImages((prev) => [...prev, ...newImages]);
     setPdfUrl(null);
+
+    // 🔴 Crucial Fix: Input value clear karna padega taaki dobara images add ho sakein
+    e.target.value = "";
   };
 
   const removeImage = (id: string) => {
@@ -97,6 +102,17 @@ function JpgToPdfPage() {
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100">
       <Navbar />
+      
+      {/* Hidden File Input (Common for both empty & image grid states) */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/jpeg, image/png, image/webp"
+        multiple
+        className="hidden"
+        onChange={handleImageSelect}
+      />
+
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <Link
@@ -106,7 +122,7 @@ function JpgToPdfPage() {
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-blue-600 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> JPG to PDF
+            <ShieldCheck className="w-4 h-4" /> ToolKraft JPG to PDF
           </span>
         </div>
 
@@ -129,14 +145,6 @@ function JpgToPdfPage() {
                 <ImageIcon className="w-8 h-8" />
               </div>
               <p className="text-base font-extrabold">Select Images (JPG/PNG)</p>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/jpeg, image/png"
-                multiple
-                className="hidden"
-                onChange={(e) => handleImageSelect(e.target.files)}
-              />
             </div>
           ) : (
             <div className="space-y-6">
@@ -193,7 +201,7 @@ function JpgToPdfPage() {
                   </p>
                   <a
                     href={pdfUrl}
-                    download="images-document.pdf"
+                    download="toolkraft-document.pdf"
                     className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md"
                   >
                     <Download className="w-4 h-4" /> Download PDF
