@@ -4,8 +4,7 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
-import { Button } from "@/app/components/ui/Button";
-import { ArrowLeft, Download, ShieldCheck, RefreshCw, Layers } from "lucide-react";
+import { ArrowLeft, Download, ShieldCheck, RefreshCw, Layers, Upload } from "lucide-react";
 
 function PdfToImagePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -37,10 +36,8 @@ function PdfToImagePage() {
         canvas.height = viewport.height;
 
         if (ctx) {
-          // 🟢 Fix: Background ko solid white fill kiya taaki JPEG par black layer na aaye
           ctx.fillStyle = "#FFFFFF";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
           await page.render({ canvasContext: ctx, viewport } as any).promise;
           extractedImages.push(canvas.toDataURL("image/jpeg", 0.85));
         }
@@ -49,17 +46,24 @@ function PdfToImagePage() {
       setImages(extractedImages);
     } catch (e) {
       console.error(e);
+      alert("Error processing PDF file. Please try another PDF.");
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const resetAll = () => {
+    setFile(null);
+    setImages([]);
+    setIsProcessing(false);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12">
       <Navbar />
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-emerald-600">
+        <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+          <Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600">
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
@@ -68,33 +72,76 @@ function PdfToImagePage() {
         </div>
 
         <div className="text-center space-y-2 max-w-2xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-extrabold">Extract PDF Pages as Images</h1>
-          <p className="text-xs sm:text-sm text-slate-500">Convert PDF pages into high quality JPG images.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+            Extract PDF Pages as Images
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Convert PDF pages into high quality JPG images instantly.
+          </p>
         </div>
 
-        <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        {/* Outer White Box Container */}
+        <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
           {!file ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-12 rounded-2xl text-center cursor-pointer hover:bg-emerald-500/5 space-y-4"
+              className="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-12 rounded-2xl text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/5 transition space-y-4"
             >
-              <Layers className="w-8 h-8 text-emerald-600 mx-auto" />
-              <p className="text-base font-extrabold">Select PDF File</p>
-              <input type="file" ref={fileInputRef} accept="application/pdf" className="hidden" onChange={(e) => handleConvert(e.target.files)} />
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <Upload className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">Click to Select PDF File</p>
+                <p className="text-xs text-slate-500 mt-1">Upload any PDF file to split into images</p>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => handleConvert(e.target.files)}
+              />
             </div>
           ) : (
             <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div className="truncate max-w-xs sm:max-w-md">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
+                  <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                </div>
+                <button
+                  onClick={resetAll}
+                  className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/40 rounded-lg hover:bg-red-100 transition"
+                >
+                  Choose Different File
+                </button>
+              </div>
+
               {isProcessing ? (
-                <div className="flex items-center justify-center gap-2 py-10 text-xs font-bold text-emerald-600">
-                  <RefreshCw className="w-5 h-5 animate-spin" /> Converting Pages...
+                <div className="flex flex-col items-center justify-center py-16 space-y-3">
+                  <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Extracting Pages into JPG...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {images.map((imgUrl, index) => (
-                    <div key={index} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-center space-y-2">
-                      <img src={imgUrl} alt={`Page ${index + 1}`} className="h-32 mx-auto object-contain rounded" />
-                      <p className="text-xs font-bold">Page {index + 1}</p>
-                      <a href={imgUrl} download={`page-${index + 1}.jpg`} className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+                    <div
+                      key={index}
+                      className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-3 shadow-sm"
+                    >
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg">
+                        <img
+                          src={imgUrl}
+                          alt={`Page ${index + 1}`}
+                          className="h-44 w-full object-contain rounded"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Page {index + 1}</p>
+                      <a
+                        href={imgUrl}
+                        download={`page-${index + 1}.jpg`}
+                        className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition"
+                      >
                         <Download className="w-3.5 h-3.5" /> Download JPG
                       </a>
                     </div>
