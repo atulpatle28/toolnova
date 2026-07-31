@@ -7,7 +7,7 @@ import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { 
-  ArrowLeft, Download, ShieldCheck, RefreshCw, Upload, 
+  ArrowLeft, Download, ShieldCheck, Upload, 
   Crop as CropIcon, Sliders, User, Wand2, RotateCcw 
 } from "lucide-react";
 
@@ -19,6 +19,7 @@ function ImageCropPage() {
   
   // Crop states
   const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+  const [aspect, setAspect] = useState<number | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   
   // Adjustment states
@@ -45,7 +46,7 @@ function ImageCropPage() {
     if (!imgRef.current) return;
     const { width, height } = imgRef.current;
     
-    // Set aspect ratio for Passport Photos (e.g. 3.5cm x 4.5cm -> ~0.77 ratio)
+    setAspect(ratio);
     const cropWidth = Math.min(width, height * ratio);
     const cropHeight = cropWidth / ratio;
     
@@ -63,6 +64,7 @@ function ImageCropPage() {
     setContrast(100);
     setSaturation(100);
     setSelectedFilter("none");
+    setAspect(undefined);
     setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
   };
 
@@ -87,7 +89,6 @@ function ImageCropPage() {
     canvas.width = cropToUse.width * scaleX;
     canvas.height = cropToUse.height * scaleY;
 
-    // Apply Filter & Adjustments to Canvas
     let filterString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
     if (selectedFilter === "grayscale") filterString += " grayscale(100%)";
     if (selectedFilter === "sepia") filterString += " sepia(100%)";
@@ -107,7 +108,6 @@ function ImageCropPage() {
       canvas.height
     );
 
-    // 🟢 Fixed: Download as toolkraft-edited-image.jpg
     const link = document.createElement("a");
     link.download = `toolkraft-edited-image.jpg`;
     link.href = canvas.toDataURL("image/jpeg", 0.95);
@@ -194,7 +194,6 @@ function ImageCropPage() {
 
         {/* Workspace Canvas Area */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[550px]">
-          {/* Main Image Display Box */}
           <div className="lg:col-span-3 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex items-center justify-center relative overflow-hidden">
             {!imageSrc ? (
               <div
@@ -220,6 +219,7 @@ function ImageCropPage() {
               <div className="max-h-[500px] flex items-center justify-center">
                 <ReactCrop
                   crop={crop}
+                  aspect={aspect}
                   onChange={(c) => setCrop(c)}
                   onComplete={(c) => setCompletedCrop(c)}
                 >
@@ -235,7 +235,6 @@ function ImageCropPage() {
             )}
           </div>
 
-          {/* Active Tool Sidebar Panel */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
             <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-3">
               {activeTab === "crop" && "Crop & Resize"}
@@ -250,25 +249,37 @@ function ImageCropPage() {
                 <p>Drag on the image to crop manually or choose standard aspect ratio.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 })}
+                    onClick={() => {
+                      setAspect(undefined);
+                      setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+                    }}
                     className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
                   >
                     Free Form
                   </button>
                   <button
-                    onClick={() => setCrop({ unit: "%", width: 50, height: 50, aspect: 1, x: 25, y: 25 })}
+                    onClick={() => {
+                      setAspect(1);
+                      setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+                    }}
                     className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
                   >
                     1 : 1 (Square)
                   </button>
                   <button
-                    onClick={() => setCrop({ unit: "%", width: 60, height: 40, aspect: 16 / 9, x: 20, y: 30 })}
+                    onClick={() => {
+                      setAspect(16 / 9);
+                      setCrop({ unit: "%", width: 60, height: 40, x: 20, y: 30 });
+                    }}
                     className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
                   >
                     16 : 9 (Landscape)
                   </button>
                   <button
-                    onClick={() => setCrop({ unit: "%", width: 40, height: 60, aspect: 9 / 16, x: 30, y: 20 })}
+                    onClick={() => {
+                      setAspect(9 / 16);
+                      setCrop({ unit: "%", width: 40, height: 60, x: 30, y: 20 });
+                    }}
                     className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
                   >
                     9 : 16 (Reel/Story)
