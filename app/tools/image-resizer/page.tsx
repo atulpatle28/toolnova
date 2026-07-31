@@ -37,6 +37,8 @@ function ImageResizerPage() {
         setResizedSizeKb(Math.round(file.size / 1024));
       };
       reader.readAsDataURL(file);
+      // Value reset so selecting the same file again still triggers onChange
+      e.target.value = "";
     }
   };
 
@@ -87,7 +89,6 @@ function ImageResizerPage() {
     let targetPxWidth = getCanvasPixels(width, unit);
     let targetPxHeight = getCanvasPixels(height, unit);
 
-    // Protection against invalid or 0 dimensions
     if (targetPxWidth <= 0) targetPxWidth = 100;
     if (targetPxHeight <= 0) targetPxHeight = 100;
 
@@ -113,7 +114,6 @@ function ImageResizerPage() {
       let dataUrl = canvas.toDataURL("image/jpeg", quality);
       let currentKb = Math.round((dataUrl.length * 0.75) / 1024);
 
-      // If larger than target KB, reduce quality
       if (currentKb > targetKb) {
         while (currentKb > targetKb && quality > 0.05) {
           quality -= 0.04;
@@ -121,7 +121,6 @@ function ImageResizerPage() {
           currentKb = Math.round((dataUrl.length * 0.75) / 1024);
         }
       } 
-      // If smaller than target KB, scale resolution slightly to fill target KB safely
       else if (currentKb < targetKb && targetKb <= 500) {
         let scaleFactor = 1.1;
         while (currentKb < targetKb && scaleFactor <= 3.0) {
@@ -158,6 +157,15 @@ function ImageResizerPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Navbar />
 
+      {/* Global Hidden Input File Ref */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       <main className="flex-1 max-w-[1300px] w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Top Header */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900 border border-slate-800">
@@ -191,13 +199,6 @@ function ImageResizerPage() {
                   <p className="text-lg font-bold text-slate-200">Select Image to Resize</p>
                   <p className="text-xs text-slate-500 mt-1">Supports JPG, PNG, WEBP files</p>
                 </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
               </div>
             ) : (
               <div className="space-y-4 w-full flex flex-col items-center">
@@ -217,15 +218,16 @@ function ImageResizerPage() {
 
                 <div className="flex gap-3">
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl"
+                    className="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer"
                   >
                     Change Image
                   </button>
                   <a
                     href={previewUrl || imageSrc}
                     download="toolkraft-resized-image.jpg"
-                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl"
+                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition"
                   >
                     <Download className="w-4 h-4" /> Download Image
                   </a>
@@ -336,7 +338,7 @@ function ImageResizerPage() {
             <button
               onClick={handleApplyResize}
               disabled={!imageSrc || isCompressing}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
             >
               {isCompressing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
