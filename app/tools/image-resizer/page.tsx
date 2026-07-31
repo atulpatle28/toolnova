@@ -12,15 +12,12 @@ type UnitType = "px" | "cm" | "mm" | "in";
 
 function ImageResizerPage() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Dimension States
   const [unit, setUnit] = useState<UnitType>("px");
   const [width, setWidth] = useState<number>(300);
   const [height, setHeight] = useState<number>(150);
-  const [dpi, setDpi] = useState<number>(300);
-  const [keepAspectRatio, setKeepAspectRatio] = useState<boolean>(false);
-
+  
   // Size Target States
   const [targetKb, setTargetKb] = useState<number>(50);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
@@ -28,27 +25,27 @@ function ImageResizerPage() {
   const [resizedSizeKb, setResizedSizeKb] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => {
-        setImageSrc(reader.result as string);
-        setPreviewUrl(reader.result as string);
+        const result = reader.result as string;
+        setImageSrc(result);
+        setPreviewUrl(result);
+        setResizedSizeKb(Math.round(file.size / 1024));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Convert Units to Pixels
-  const getPixels = (val: number, u: UnitType, currentDpi: number): number => {
+  // Convert CM/MM/IN/PX safely to Canvas Pixels
+  const getCanvasPixels = (val: number, u: UnitType): number => {
     if (u === "px") return val;
-    if (u === "in") return Math.round(val * currentDpi);
-    if (u === "cm") return Math.round((val / 2.54) * currentDpi);
-    if (u === "mm") return Math.round((val / 25.4) * currentDpi);
+    if (u === "cm") return Math.round(val * 37.7952755906); // 96 DPI Web Standard
+    if (u === "mm") return Math.round(val * 3.7795275591);
+    if (u === "in") return Math.round(val * 96);
     return val;
   };
 
@@ -60,44 +57,99 @@ function ImageResizerPage() {
     setTargetKb(pTargetKb);
   };
 
-  // Process Resize and KB Limit
+  // Unit Change Auto-Converter
+  const handleUnitChange = (newUnit: UnitType) => {
+    if (unit === newUnit) return;
+    const currentPxW = getCanvasPixels(width, unit);
+    const currentPxH = getCanvasPixels(height, unit);
+
+    if (newUnit === "px") {
+      setWidth(currentPxW);
+      setHeight(currentPxH);
+    } else if (newUnit === "cm") {
+      setWidth(Number((currentPxW / 37.7952755906).toFixed(1)));
+      setHeight(Number((currentPxH / 37.7952755906).toFixed(1)));
+    } else if (newUnit === "mm") {
+      setWidth(Number((currentPxW / 3.7795275591).toFixed(0)));
+      setHeight(Number((currentPxH / 3.7795275591).toFixed(0)));
+    } else if (newUnit === "in") {
+      setWidth(Number((currentPxW / 96).toFixed(2)));
+      setHeight(Number((currentPxH / 96).toFixed(2)));
+    }
+    setUnit(newUnit);
+  };
+
+  // Process Resize and Target KB
   const handleApplyResize = async () => {
     if (!imageSrc) return;
     setIsCompressing(true);
 
-    const targetPxWidth = getPixels(width, unit, dpi);
-    const targetPxHeight = getPixels(height, unit, dpi);
+    let targetPxWidth = getCanvasPixels(width, unit);
+    let targetPxHeight = getCanvasPixels(height, unit);
+
+    // Protection against invalid or 0 dimensions
+    if (targetPxWidth <= 0) targetPxWidth = 100;
+    if (targetPxHeight <= 0) targetPxHeight = 100;
 
     const img = new Image();
     img.src = imageSrc;
 
-    img.onload = async () => {
-      const canvas = document.createElement("canvas");
+    img.onload = () => {
+      let canvas = document.createElement("canvas");
       canvas.width = targetPxWidth;
       canvas.height = targetPxHeight;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      let ctx = canvas.getContext("2d");
+      if (!ctx) {
+        setIsCompressing(false);
+        return;
+      }
 
-      // Smooth Scaling
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, targetPxWidth, targetPxHeight);
 
-      // Compression loop to fit target KB limit
-      let quality = 0.95;
+      let quality = 0.92;
       let dataUrl = canvas.toDataURL("image/jpeg", quality);
-      let blobSizeKb = Math.round((dataUrl.length * (3 / 4)) / 1024);
+      let currentKb = Math.round((dataUrl.length * 0.75) / 1024);
 
-      // Reduce quality if file size exceeds target KB limit
-      while (blobSizeKb > targetKb && quality > 0.1) {
-        quality -= 0.05;
-        dataUrl = canvas.toDataURL("image/jpeg", quality);
-        blobSizeKb = Math.round((dataUrl.length * (3 / 4)) / 1024);
+      // If larger than target KB, reduce quality
+      if (currentKb > targetKb) {
+        while (currentKb > targetKb && quality > 0.05) {
+          quality -= 0.04;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          currentKb = Math.round((dataUrl.length * 0.75) / 1024);
+        }
+      } 
+      // If smaller than target KB, scale resolution slightly to fill target KB safely
+      else if (currentKb < targetKb && targetKb <= 500) {
+        let scaleFactor = 1.1;
+        while (currentKb < targetKb && scaleFactor <= 3.0) {
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = Math.round(targetPxWidth * scaleFactor);
+          tempCanvas.height = Math.round(targetPxHeight * scaleFactor);
+          const tempCtx = tempCanvas.getContext("2d");
+          if (tempCtx) {
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = "high";
+            tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+            const tempUrl = tempCanvas.toDataURL("image/jpeg", 0.95);
+            const tempKb = Math.round((tempUrl.length * 0.75) / 1024);
+            if (tempKb <= targetKb) {
+              dataUrl = tempUrl;
+              currentKb = tempKb;
+              scaleFactor += 0.15;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
       }
 
       setPreviewUrl(dataUrl);
-      setResizedSizeKb(blobSizeKb);
+      setResizedSizeKb(currentKb);
       setIsCompressing(false);
     };
   };
@@ -125,7 +177,7 @@ function ImageResizerPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Display / Preview Box */}
+          {/* Main Display Box */}
           <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[420px]">
             {!imageSrc ? (
               <div
@@ -149,18 +201,17 @@ function ImageResizerPage() {
               </div>
             ) : (
               <div className="space-y-4 w-full flex flex-col items-center">
-                <div className="border border-slate-800 bg-slate-950 p-3 rounded-2xl max-h-[380px] flex items-center justify-center overflow-hidden">
+                <div className="border border-slate-800 bg-slate-950 p-3 rounded-2xl max-h-[380px] flex items-center justify-center overflow-hidden w-full">
                   <img
-                    ref={imgRef}
                     src={previewUrl || imageSrc}
                     alt="Preview"
-                    className="max-h-[340px] w-auto object-contain rounded-lg"
+                    className="max-h-[340px] max-w-full object-contain rounded-lg"
                   />
                 </div>
 
-                {resizedSizeKb && (
+                {resizedSizeKb !== null && (
                   <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-800/50 px-4 py-2 rounded-xl">
-                    <CheckCircle2 className="w-4 h-4" /> Ready Size: {resizedSizeKb} KB
+                    <CheckCircle2 className="w-4 h-4" /> Output File Size: {resizedSizeKb} KB
                   </div>
                 )}
 
@@ -183,7 +234,7 @@ function ImageResizerPage() {
             )}
           </div>
 
-          {/* Controls Sidebar Panel */}
+          {/* Controls Panel */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
             {/* Quick Presets */}
             <div className="space-y-2 border-b border-slate-800 pb-4">
@@ -206,7 +257,7 @@ function ImageResizerPage() {
                   <span className="block text-[10px] text-slate-400 font-normal">4.0 x 2.0 cm (20KB)</span>
                 </button>
                 <button
-                  onClick={() => applyPreset(350, 350, "px", 300)}
+                  onClick={() => applyPreset(350, 350, "px", 100)}
                   className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-left font-bold text-slate-200"
                 >
                   UPSC Square
@@ -229,7 +280,7 @@ function ImageResizerPage() {
                 {(["px", "cm", "mm", "in"] as UnitType[]).map((u) => (
                   <button
                     key={u}
-                    onClick={() => setUnit(u)}
+                    onClick={() => handleUnitChange(u)}
                     className={`py-1.5 rounded-lg font-bold uppercase transition ${
                       unit === u ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
                     }`}
@@ -246,6 +297,7 @@ function ImageResizerPage() {
                 <label className="text-slate-400 font-bold mb-1 block">Width ({unit})</label>
                 <input
                   type="number"
+                  step="any"
                   value={width}
                   onChange={(e) => setWidth(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-bold text-white focus:outline-none focus:border-emerald-500"
@@ -255,6 +307,7 @@ function ImageResizerPage() {
                 <label className="text-slate-400 font-bold mb-1 block">Height ({unit})</label>
                 <input
                   type="number"
+                  step="any"
                   value={height}
                   onChange={(e) => setHeight(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-bold text-white focus:outline-none focus:border-emerald-500"
