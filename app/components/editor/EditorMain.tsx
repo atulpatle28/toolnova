@@ -130,7 +130,7 @@ export default function EditorMain({ initialImageSrc = null, className = "" }: E
         ctx.drawImage(img, 0, 0);
 
         const link = document.createElement("a");
-        link.download = `toolnova-edited-${Date.now()}.png`;
+        link.download = `toolkraft-edited-${Date.now()}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
 
