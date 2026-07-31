@@ -8,7 +8,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { 
   ArrowLeft, Download, ShieldCheck, Upload, 
-  Crop as CropIcon, Sliders, User, Wand2, RotateCcw 
+  Crop as CropIcon, Sliders, User, Wand2, RotateCcw, Sparkles 
 } from "lucide-react";
 
 type ActiveTab = "crop" | "adjustments" | "passport" | "filters";
@@ -18,7 +18,7 @@ function ImageCropPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("crop");
   
   // Crop states
-  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 80, height: 80, x: 10, y: 10 });
   const [aspect, setAspect] = useState<number | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   
@@ -26,9 +26,6 @@ function ImageCropPage() {
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
   const [saturation, setSaturation] = useState<number>(100);
-  
-  // Filter state
-  const [selectedFilter, setSelectedFilter] = useState<string>("none");
 
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,9 +60,8 @@ function ImageCropPage() {
     setBrightness(100);
     setContrast(100);
     setSaturation(100);
-    setSelectedFilter("none");
     setAspect(undefined);
-    setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+    setCrop({ unit: "%", width: 80, height: 80, x: 10, y: 10 });
   };
 
   const handleDownload = () => {
@@ -89,12 +85,7 @@ function ImageCropPage() {
     canvas.width = cropToUse.width * scaleX;
     canvas.height = cropToUse.height * scaleY;
 
-    let filterString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-    if (selectedFilter === "grayscale") filterString += " grayscale(100%)";
-    if (selectedFilter === "sepia") filterString += " sepia(100%)";
-    if (selectedFilter === "vintage") filterString += " sepia(50%) hue-rotate(-30deg)";
-    
-    ctx.filter = filterString;
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
 
     ctx.drawImage(
       image,
@@ -114,32 +105,24 @@ function ImageCropPage() {
     link.click();
   };
 
-  const getImageStyle = () => {
-    let filterStr = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-    if (selectedFilter === "grayscale") filterStr += " grayscale(100%)";
-    if (selectedFilter === "sepia") filterStr += " sepia(100%)";
-    if (selectedFilter === "vintage") filterStr += " sepia(50%) hue-rotate(-30deg)";
-    return { filter: filterStr };
-  };
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col">
       <Navbar />
 
       <main className="flex-1 max-w-[1400px] w-full mx-auto p-4 sm:p-6 space-y-4">
-        {/* Top Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900 border border-slate-800">
+        {/* Top Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-2xl bg-[#0b0f19] border border-slate-800">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+            <Link href="/" className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <span className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+            <span className="text-xs font-bold text-emerald-400 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4" /> ToolKraft Workspace
             </span>
           </div>
 
-          {/* Feature Tabs */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+          {/* Nav Tabs */}
+          <div className="flex items-center bg-[#030712] p-1 rounded-xl border border-slate-800/80">
             <button
               onClick={() => setActiveTab("crop")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
@@ -174,11 +157,11 @@ function ImageCropPage() {
             </button>
           </div>
 
-          {/* Actions */}
+          {/* Top Actions */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleReset}
-              className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 rounded-lg"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Reset
             </button>
@@ -193,14 +176,15 @@ function ImageCropPage() {
         </div>
 
         {/* Workspace Canvas Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[550px]">
-          <div className="lg:col-span-3 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex items-center justify-center relative overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Image Display Box - Auto Height for full document visibility */}
+          <div className="lg:col-span-3 bg-[#0b0f19]/80 border border-slate-800/80 rounded-3xl p-4 sm:p-6 flex items-center justify-center overflow-auto min-h-[500px]">
             {!imageSrc ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-800 hover:border-emerald-500 bg-slate-900 p-12 rounded-2xl text-center cursor-pointer transition space-y-4"
+                className="border-2 border-dashed border-slate-800 hover:border-emerald-500 bg-[#030712] p-12 rounded-2xl text-center cursor-pointer transition space-y-4"
               >
-                <div className="w-16 h-16 bg-emerald-950 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 bg-emerald-950/60 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
                   <Upload className="w-8 h-8" />
                 </div>
                 <div>
@@ -216,7 +200,7 @@ function ImageCropPage() {
                 />
               </div>
             ) : (
-              <div className="max-h-[500px] flex items-center justify-center">
+              <div className="w-full flex items-center justify-center">
                 <ReactCrop
                   crop={crop}
                   aspect={aspect}
@@ -226,21 +210,24 @@ function ImageCropPage() {
                   <img
                     ref={imgRef}
                     src={imageSrc}
-                    alt="Target Image"
-                    style={getImageStyle()}
-                    className="max-h-[480px] object-contain rounded-lg"
+                    alt="Target Document"
+                    style={{
+                      filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+                    }}
+                    className="max-w-full h-auto object-contain rounded-lg"
                   />
                 </ReactCrop>
               </div>
             )}
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
-            <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-3">
+          {/* Sidebar */}
+          <div className="bg-[#0b0f19] border border-slate-800/80 rounded-3xl p-6 space-y-6 h-fit">
+            <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800/80 pb-3">
               {activeTab === "crop" && "Crop & Resize"}
               {activeTab === "adjustments" && "Image Adjustments"}
               {activeTab === "passport" && "Passport Size Presets"}
-              {activeTab === "filters" && "Color Filters"}
+              {activeTab === "filters" && "AI Filters & Presets"}
             </h3>
 
             {/* CROP OPTIONS */}
@@ -251,36 +238,36 @@ function ImageCropPage() {
                   <button
                     onClick={() => {
                       setAspect(undefined);
-                      setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+                      setCrop({ unit: "%", width: 80, height: 80, x: 10, y: 10 });
                     }}
-                    className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
+                    className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 font-bold hover:bg-slate-800"
                   >
                     Free Form
                   </button>
                   <button
                     onClick={() => {
                       setAspect(1);
-                      setCrop({ unit: "%", width: 50, height: 50, x: 25, y: 25 });
+                      setCrop({ unit: "%", width: 80, height: 80, x: 10, y: 10 });
                     }}
-                    className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
+                    className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 font-bold hover:bg-slate-800"
                   >
                     1 : 1 (Square)
                   </button>
                   <button
                     onClick={() => {
                       setAspect(16 / 9);
-                      setCrop({ unit: "%", width: 60, height: 40, x: 20, y: 30 });
+                      setCrop({ unit: "%", width: 80, height: 50, x: 10, y: 20 });
                     }}
-                    className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
+                    className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 font-bold hover:bg-slate-800"
                   >
                     16 : 9 (Landscape)
                   </button>
                   <button
                     onClick={() => {
                       setAspect(9 / 16);
-                      setCrop({ unit: "%", width: 40, height: 60, x: 30, y: 20 });
+                      setCrop({ unit: "%", width: 50, height: 80, x: 25, y: 10 });
                     }}
-                    className="p-2 bg-slate-800 rounded-lg text-slate-200 font-bold hover:bg-slate-700"
+                    className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 font-bold hover:bg-slate-800"
                   >
                     9 : 16 (Reel/Story)
                   </button>
@@ -288,7 +275,7 @@ function ImageCropPage() {
               </div>
             )}
 
-            {/* ADJUSTMENT SLIDERS */}
+            {/* ADJUSTMENTS */}
             {activeTab === "adjustments" && (
               <div className="space-y-5 text-xs text-slate-300">
                 <div>
@@ -338,20 +325,20 @@ function ImageCropPage() {
               </div>
             )}
 
-            {/* PASSPORT PHOTO PRESETS */}
+            {/* PASSPORT PHOTO */}
             {activeTab === "passport" && (
               <div className="space-y-3 text-xs">
                 <p className="text-slate-400">Quickly crop photos for official document standards:</p>
                 <button
                   onClick={() => handlePassportPreset(3.5 / 4.5)}
-                  className="w-full p-3 bg-slate-800 hover:bg-slate-700 text-left rounded-xl text-slate-200 font-bold flex justify-between items-center"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left rounded-xl text-slate-200 font-bold flex justify-between items-center"
                 >
                   <span>Indian Passport (3.5 x 4.5 cm)</span>
                   <span className="text-emerald-400">35:45</span>
                 </button>
                 <button
                   onClick={() => handlePassportPreset(2 / 2)}
-                  className="w-full p-3 bg-slate-800 hover:bg-slate-700 text-left rounded-xl text-slate-200 font-bold flex justify-between items-center"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left rounded-xl text-slate-200 font-bold flex justify-between items-center"
                 >
                   <span>US Visa / Stamp (2 x 2 inch)</span>
                   <span className="text-emerald-400">1:1</span>
@@ -359,22 +346,18 @@ function ImageCropPage() {
               </div>
             )}
 
-            {/* FILTERS */}
+            {/* FILTERS - COMING SOON PLACEHOLDER (Pehle jaisa) */}
             {activeTab === "filters" && (
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {["none", "grayscale", "sepia", "vintage"].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setSelectedFilter(f)}
-                    className={`p-3 rounded-xl font-bold capitalize transition border ${
-                      selectedFilter === f
-                        ? "bg-emerald-600 border-emerald-500 text-white"
-                        : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
+                  <Sparkles className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-200">AI Filters & Presets</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto">
+                    One-click color LUTs, Vintage, Grayscale, and Cinematic presets coming soon.
+                  </p>
+                </div>
               </div>
             )}
           </div>
