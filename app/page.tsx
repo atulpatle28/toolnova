@@ -34,6 +34,15 @@ interface Tool {
 
 const tools: Tool[] = [
   {
+    id: "image-crop",
+    name: "Photo Editor & Crop",
+    description: "Crop photos, adjust brightness/contrast, apply filters, or create passport size photos easily.",
+    icon: Crop,
+    href: "/tools/image-crop",
+    category: ["All", "Image Studio"],
+    badge: "Featured",
+  },
+  {
     id: "pdf-compressor",
     name: "PDF Compressor",
     description: "Ultra-fast browser compression. Shrink PDFs without losing clarity.",
@@ -97,14 +106,6 @@ const tools: Tool[] = [
     icon: FileText,
     href: "/tools/pdf-to-image",
     category: ["All", "Converters"],
-  },
-  {
-    id: "image-crop",
-    name: "Passport & Photo Crop",
-    description: "Crop pictures to custom aspect ratios or official passport sizes.",
-    icon: Crop,
-    href: "/tools/image-crop",
-    category: ["All", "Image Studio"],
   },
 ];
 
@@ -174,7 +175,7 @@ export default function Home() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools (e.g. compress pdf, resize image)..."
+              placeholder="Search tools (e.g. photo editor, compress pdf, resize image)..."
               className="w-full pl-12 pr-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all text-sm shadow-xl"
             />
           </div>
