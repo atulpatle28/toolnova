@@ -3,46 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Current User getter
+  // Get current user
   User? get currentUser => _auth.currentUser;
 
-  // Auth State Stream (Auto login/logout check karne ke liye)
+  // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // 1. Email & Password Signup
-  Future<UserCredential?> signUpWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Signup failed');
-    }
-  }
-
-  // 2. Email & Password Login
-  Future<UserCredential?> signInWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Login failed');
-    }
-  }
-
-  // 3. Phone Number OTP Request
+  // Send OTP to Phone Number
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
@@ -50,6 +17,7 @@ class AuthService {
   }) async {
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
+      timeout: const Duration(seconds: 60),
       verificationCompleted: (PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
       },
@@ -61,8 +29,8 @@ class AuthService {
     );
   }
 
-  // 4. Verify OTP Code
-  Future<UserCredential> verifyOTP({
+  // Verify OTP Code
+  Future<UserCredential?> verifyOtp({
     required String verificationId,
     required String smsCode,
   }) async {
@@ -72,21 +40,12 @@ class AuthService {
         smsCode: smsCode,
       );
       return await _auth.signInWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Invalid OTP Code');
+    } catch (e) {
+      rethrow;
     }
   }
 
-  // 5. Password Reset Email
-  Future<void> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Failed to send reset email');
-    }
-  }
-
-  // 6. Sign Out
+  // Sign Out
   Future<void> signOut() async {
     await _auth.signOut();
   }

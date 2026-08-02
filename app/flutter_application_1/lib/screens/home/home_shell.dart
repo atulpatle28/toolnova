@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import '../chat/chat_screen.dart';
 import '../discover/discover_screen.dart';
 import '../feed/feed_screen.dart';
+import '../chat/chat_screen.dart';
 import '../profile/profile_screen.dart';
-import '../safety/safety_screen.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({
-    required this.isDark,
-    required this.onToggleTheme,
-    super.key,
-  });
-
   final bool isDark;
-  final VoidCallback onToggleTheme;
+  final VoidCallback? onToggleTheme;
+
+  const HomeShell({
+    super.key,
+    this.isDark = true,
+    this.onToggleTheme,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -22,61 +21,59 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
 
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      DiscoverScreen(
-        isDark: widget.isDark,
-        onToggleTheme: widget.onToggleTheme,
-      ),
-      const ChatScreen(),
-      const FeedScreen(),
-      const SafetyScreen(),
-      const ProfileScreen(),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      const DiscoverScreen(),
+      const FeedScreen(),
+      const ChatScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0E15),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (value) =>
-            setState(() => _selectedIndex = value),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Discover',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF161824),
+          border: Border(
+            top: BorderSide(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Chats',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.dynamic_feed_outlined),
-            selectedIcon: Icon(Icons.dynamic_feed),
-            label: 'Feed',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shield_outlined),
-            selectedIcon: Icon(Icons.shield),
-            label: 'Safety',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) => setState(() => _selectedIndex = index),
+          backgroundColor: Colors.transparent,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: const Color(0xFFE94057),
+          unselectedItemColor: Colors.white38,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.style_rounded),
+              label: 'Discover',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore_rounded),
+              label: 'Feed',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_rounded),
+              label: 'Chats',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }
