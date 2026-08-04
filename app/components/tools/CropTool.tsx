@@ -65,49 +65,71 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
     setRotation((prev) => (prev + 90) % 360);
   };
 
-  // Canvas Export logic with Rotation & Flip transformed baking
+  // Fixed Canvas Export Logic handling Rotation, Flips & Scaling correctly
   const handleApplyCrop = () => {
     if (!completedCrop || !imgRef.current || !onApply) return;
 
     const image = imgRef.current;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) return;
-
+    
+    // Scale factor between natural image resolution and displayed DOM size
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
+    // Step 1: Create a temporary canvas for Full Transformed Image
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+
+    if (!tempCtx) return;
+
+    const rotRad = (rotation * Math.PI) / 180;
+    const isQuarterRotated = Math.abs(rotation % 180) === 90;
+
+    // Adjust canvas bounding dimensions based on rotation
+    const boundingWidth = isQuarterRotated ? image.naturalHeight : image.naturalWidth;
+    const boundingHeight = isQuarterRotated ? image.naturalWidth : image.naturalHeight;
+
+    tempCanvas.width = boundingWidth;
+    tempCanvas.height = boundingHeight;
+
+    tempCtx.imageSmoothingQuality = "high";
+
+    // Rotate and Flip relative to canvas center
+    tempCtx.save();
+    tempCtx.translate(boundingWidth / 2, boundingHeight / 2);
+    tempCtx.rotate(rotRad);
+    tempCtx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+    tempCtx.translate(-image.naturalWidth / 2, -image.naturalHeight / 2);
+    tempCtx.drawImage(image, 0, 0);
+    tempCtx.restore();
+
+    // Step 2: Extract Crop Region from Transformed Canvas
     const cropX = completedCrop.x * scaleX;
     const cropY = completedCrop.y * scaleY;
     const cropWidth = completedCrop.width * scaleX;
     const cropHeight = completedCrop.height * scaleY;
 
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    const cropCanvas = document.createElement("canvas");
+    const cropCtx = cropCanvas.getContext("2d");
 
-    ctx.imageSmoothingQuality = "high";
+    if (!cropCtx) return;
 
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-    ctx.rotate((rotation * Math.PI) / 180);
+    cropCanvas.width = cropWidth;
+    cropCanvas.height = cropHeight;
+    cropCtx.imageSmoothingQuality = "high";
 
-    ctx.drawImage(
-      image,
+    cropCtx.drawImage(
+      tempCanvas,
       cropX,
       cropY,
       cropWidth,
       cropHeight,
-      -cropWidth / 2,
-      -cropHeight / 2,
+      0,
+      0,
       cropWidth,
       cropHeight
     );
 
-    ctx.restore();
-
-    const croppedDataUrl = canvas.toDataURL("image/png");
+    const croppedDataUrl = cropCanvas.toDataURL("image/png");
     onApply(croppedDataUrl);
   };
 
