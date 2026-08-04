@@ -1,4 +1,4 @@
-export font const convertToPdfTools = [
+export const convertToPdfTools = [
   { name: "JPG to PDF", href: "/tools/jpg-to-pdf", icon: "FileImage", active: true },
   { name: "WORD to PDF", href: "/tools/word-to-pdf", icon: "FileText", active: true },
   { name: "POWERPOINT to PDF", href: "/tools/powerpoint-to-pdf", icon: "Presentation", active: true },
