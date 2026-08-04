@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://mytoolkraft.in",
   },
   verification: {
-    google: "JVhRfyFuIT5QjEhV",
+    google: "LEUp0bxNFHmpKcLcci9Zd_ZU-BZGnLedy8FBbcXjdYM",
   },
   openGraph: {
     title: "ToolKraft - Free Online PDF & Image Utilities",
