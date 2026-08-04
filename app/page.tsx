@@ -42,7 +42,16 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  // --- Featured Govt Tool ---
+  // --- High Demand Featured Tools ---
+  {
+    id: "heic-to-jpg",
+    name: "HEIC to JPG / PNG Converter",
+    description: "Convert iPhone HEIC photos to JPG or PNG format instantly inside your browser without quality loss.",
+    icon: FileType,
+    href: "/tools/heic-to-jpg",
+    category: ["All", "Converters", "Image Studio"],
+    badge: "US POPULAR",
+  },
   {
     id: "govt-job-photo-resizer",
     name: "Govt Exam Photo & Signature Resizer",
@@ -50,7 +59,7 @@ const tools: Tool[] = [
     icon: UserCheck,
     href: "/tools/govt-job-photo-resizer",
     category: ["All", "Image Studio"],
-    badge: "NEW EXAM TOOL",
+    badge: "FEATURED EXAM TOOL",
   },
 
   // --- Image Studio ---
@@ -61,7 +70,6 @@ const tools: Tool[] = [
     icon: Crop,
     href: "/tools/image-crop",
     category: ["All", "Image Studio"],
-    badge: "Featured",
   },
   {
     id: "image-compressor",
@@ -315,7 +323,7 @@ export default function Home() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools (e.g. photo editor, compress pdf, word to pdf, resize image)..."
+              placeholder="Search tools (e.g. heic to jpg, govt photo resizer, compress pdf)..."
               className="w-full pl-12 pr-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all text-sm shadow-xl"
             />
           </div>
