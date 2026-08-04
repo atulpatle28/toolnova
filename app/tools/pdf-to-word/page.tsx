@@ -3,61 +3,62 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { Document, Paragraph, Packer, TextRun } from "docx";
 import { Navbar } from "@/components/layout/Navbar";
-import { ArrowLeft, Download, ShieldCheck, Upload, Table, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, ShieldCheck, FileText, RefreshCw, CheckCircle2 } from "lucide-react";
 
-function ExcelToPdfPage() {
+function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [docBlob, setDocBlob] = useState<Blob | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      setPdfUrl(null);
+      setDocBlob(null);
       e.target.value = "";
     }
   };
 
-  const convertExcelToPdf = async () => {
+  const convertPdfToWord = async () => {
     if (!file) return;
     setIsConverting(true);
 
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const doc = new jsPDF();
+      // Load PDF.js worker dynamically from CDN
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-      workbook.SheetNames.forEach((sheetName, index) => {
-        if (index > 0) doc.addPage();
-        
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const paragraphs: Paragraph[] = [];
 
-        if (jsonData.length > 0) {
-          const head = jsonData[0];
-          const body = jsonData.slice(1);
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(" ");
 
-          doc.text(`Sheet: ${sheetName}`, 14, 10);
-          (doc as any).autoTable({
-            head: [head],
-            body: body,
-            startY: 15,
-            styles: { fontSize: 8 },
-            theme: "grid",
-          });
+        if (pageText.trim()) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun(pageText)],
+            })
+          );
         }
+      }
+
+      const doc = new Document({
+        sections: [{ children: paragraphs }],
       });
 
-      const pdfBlob = doc.output("blob");
-      setPdfUrl(URL.createObjectURL(pdfBlob));
+      const blob = await Packer.toBlob(doc);
+      setDocBlob(blob);
     } catch (err) {
-      console.error("Excel conversion error:", err);
-      alert("Failed to convert Excel file. Make sure it's a valid .xlsx or .xls file.");
+      console.error("PDF to Word conversion error:", err);
+      alert("Failed to convert PDF to Word document.");
     } finally {
       setIsConverting(false);
     }
@@ -70,7 +71,7 @@ function ExcelToPdfPage() {
       <input
         type="file"
         ref={fileInputRef}
-        accept=".xlsx, .xls"
+        accept=".pdf"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -81,13 +82,13 @@ function ExcelToPdfPage() {
             <ArrowLeft className="w-4 h-4" /> Back to Workspace
           </Link>
           <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> ToolKraft Excel to PDF
+            <ShieldCheck className="w-4 h-4" /> ToolKraft PDF to Word
           </span>
         </div>
 
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-extrabold text-white">EXCEL to PDF Converter</h1>
-          <p className="text-xs text-slate-400">Convert Excel spreadsheets (.xlsx, .xls) into PDF documents easily.</p>
+          <h1 className="text-3xl font-extrabold text-white">PDF to WORD Converter</h1>
+          <p className="text-xs text-slate-400">Extract text and convert PDF documents into editable Word (.docx) files.</p>
         </div>
 
         <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-6">
@@ -96,19 +97,19 @@ function ExcelToPdfPage() {
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-800 hover:border-emerald-500 p-12 rounded-2xl cursor-pointer transition space-y-4 bg-slate-950/50"
             >
-              <div className="w-16 h-16 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto">
-                <Table className="w-8 h-8" />
+              <div className="w-16 h-16 bg-red-950 text-red-400 rounded-2xl flex items-center justify-center mx-auto">
+                <FileText className="w-8 h-8" />
               </div>
               <div>
-                <p className="text-lg font-bold text-slate-200">Select Excel File</p>
-                <p className="text-xs text-slate-500 mt-1">Supports .xlsx and .xls files</p>
+                <p className="text-lg font-bold text-slate-200">Select PDF File</p>
+                <p className="text-xs text-slate-500 mt-1">Supports standard PDF files</p>
               </div>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Table className="w-6 h-6 text-emerald-400" />
+                  <FileText className="w-6 h-6 text-red-400" />
                   <div className="text-left">
                     <p className="text-xs font-bold text-slate-200">{file.name}</p>
                     <p className="text-[10px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
@@ -122,25 +123,25 @@ function ExcelToPdfPage() {
                 </button>
               </div>
 
-              {!pdfUrl ? (
+              {!docBlob ? (
                 <button
-                  onClick={convertExcelToPdf}
+                  onClick={convertPdfToWord}
                   disabled={isConverting}
                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition"
                 >
-                  {isConverting ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Convert to PDF"}
+                  {isConverting ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Convert to Word (.docx)"}
                 </button>
               ) : (
                 <div className="p-4 bg-emerald-950/40 border border-emerald-800/50 rounded-2xl space-y-3">
                   <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> PDF Generated Successfully!
+                    <CheckCircle2 className="w-4 h-4" /> Word Document Ready!
                   </p>
                   <a
-                    href={pdfUrl}
-                    download="toolkraft-excel-document.pdf"
+                    href={URL.createObjectURL(docBlob)}
+                    download="toolkraft-document.docx"
                     className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition"
                   >
-                    <Download className="w-4 h-4" /> Download PDF
+                    <Download className="w-4 h-4" /> Download DOCX
                   </a>
                 </div>
               )}
@@ -152,4 +153,4 @@ function ExcelToPdfPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ExcelToPdfPage), { ssr: false });
+export default dynamic(() => Promise.resolve(PdfToWordPage), { ssr: false });
