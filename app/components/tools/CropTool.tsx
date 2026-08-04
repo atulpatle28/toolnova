@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css";
 import { Button } from "@/app/components/ui/Button";
 import {
   Check,
@@ -28,171 +26,238 @@ const ASPECT_PRESETS = [
 ];
 
 export function CropTool({ imageSrc, onApply }: CropToolProps) {
-  const [currentDisplaySrc, setCurrentDisplaySrc] = useState<string | null>(imageSrc || null);
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [currentImageSrc, setCurrentImageSrc] = useState<string | null>(imageSrc || null);
   const [aspect, setAspect] = useState<number | undefined>(undefined);
 
-  const imgRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDragging = useRef(false);
+  const startPos = useRef({ x: 0, y: 0 });
+  const [cropRect, setCropRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
-  // Sync prop image on upload
   useEffect(() => {
     if (imageSrc) {
-      setCurrentDisplaySrc(imageSrc);
+      setCurrentImageSrc(imageSrc);
+      setCropRect(null);
     }
   }, [imageSrc]);
 
-  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        {
-          unit: "%",
-          width: 85,
-        },
-        aspect || width / height,
-        width,
-        height
-      ),
-      width,
-      height
-    );
-    setCrop(initialCrop);
-  };
+  // Load and Draw Image on Interactive Canvas
+  useEffect(() => {
+    if (!currentImageSrc || !canvasRef.current) return;
 
-  // Helper to physically bake rotation into image source
-  const rotateImageSource = (degrees: number) => {
-    if (!currentDisplaySrc) return;
-
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.src = currentDisplaySrc;
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const rotRad = (degrees * Math.PI) / 180;
-      const isQuarterRotated = Math.abs(degrees % 180) === 90;
-
-      canvas.width = isQuarterRotated ? image.naturalHeight : image.naturalWidth;
-      canvas.height = isQuarterRotated ? image.naturalWidth : image.naturalHeight;
-
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(rotRad);
-      ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
-
-      const rotatedDataUrl = canvas.toDataURL("image/png");
-      setCurrentDisplaySrc(rotatedDataUrl);
-    };
-  };
-
-  // Helper to physically flip image source
-  const flipImageSource = (horizontal: boolean) => {
-    if (!currentDisplaySrc) return;
-
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.src = currentDisplaySrc;
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.scale(horizontal ? -1 : 1, horizontal ? 1 : -1);
-      ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
-
-      const flippedDataUrl = canvas.toDataURL("image/png");
-      setCurrentDisplaySrc(flippedDataUrl);
-    };
-  };
-
-  // Direct 1:1 Crop Execution
-  const handleApplyCrop = () => {
-    if (!completedCrop || !imgRef.current || !onApply) return;
-
-    const image = imgRef.current;
-    const canvas = document.createElement("canvas");
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentImageSrc;
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
 
-    const cropX = completedCrop.x * scaleX;
-    const cropY = completedCrop.y * scaleY;
-    const cropWidth = completedCrop.width * scaleX;
-    const cropHeight = completedCrop.height * scaleY;
+      // Default crop selection (80% box in center)
+      if (!cropRect) {
+        const defaultW = img.width * 0.8;
+        const defaultH = aspect ? defaultW / aspect : img.height * 0.8;
+        const defaultX = (img.width - defaultW) / 2;
+        const defaultY = (img.height - defaultH) / 2;
+        setCropRect({ x: defaultX, y: defaultY, w: defaultW, h: defaultH });
+      }
+    };
+  }, [currentImageSrc]);
 
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+  // Redraw Selection Box over Image
+  const redrawCanvas = () => {
+    if (!currentImageSrc || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(
-      image,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentImageSrc;
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
 
-    const croppedDataUrl = canvas.toDataURL("image/png");
-    onApply(croppedDataUrl);
+      if (cropRect) {
+        // Darken outside selection
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Clear selection area (Bright image preview)
+        ctx.clearRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+        ctx.drawImage(
+          img,
+          cropRect.x, cropRect.y, cropRect.w, cropRect.h,
+          cropRect.x, cropRect.y, cropRect.w, cropRect.h
+        );
+
+        // Selection Border
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = Math.max(2, canvas.width / 300);
+        ctx.strokeRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+      }
+    };
   };
 
-  if (!currentDisplaySrc) {
+  useEffect(() => {
+    redrawCanvas();
+  }, [cropRect]);
+
+  // Physical Rotate Execution on Canvas Source
+  const rotateImage = (degrees: number) => {
+    if (!currentImageSrc) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentImageSrc;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const isQuarterRotated = Math.abs(degrees % 180) === 90;
+      canvas.width = isQuarterRotated ? img.height : img.width;
+      canvas.height = isQuarterRotated ? img.width : img.height;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((degrees * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      const rotatedUrl = canvas.toDataURL("image/png");
+      setCropRect(null); // Reset selection box for new rotation bounds
+      setCurrentImageSrc(rotatedUrl);
+    };
+  };
+
+  // Physical Flip Execution
+  const flipImage = (horizontal: boolean) => {
+    if (!currentImageSrc) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentImageSrc;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(horizontal ? -1 : 1, horizontal ? 1 : -1);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      const flippedUrl = canvas.toDataURL("image/png");
+      setCropRect(null);
+      setCurrentImageSrc(flippedUrl);
+    };
+  };
+
+  // Crop & Export Selection
+  const handleApplyCrop = () => {
+    if (!cropRect || !currentImageSrc || !onApply) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = currentImageSrc;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = cropRect.w;
+      canvas.height = cropRect.h;
+
+      ctx.drawImage(
+        img,
+        cropRect.x, cropRect.y, cropRect.w, cropRect.h,
+        0, 0, cropRect.w, cropRect.h
+      );
+
+      onApply(canvas.toDataURL("image/png"));
+    };
+  };
+
+  // Mouse Drag Selection Handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    isDragging.current = true;
+    startPos.current = { x: mouseX, y: mouseY };
+    setCropRect({ x: mouseX, y: mouseY, w: 10, h: 10 });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+
+    const currentX = (e.clientX - rect.left) * scaleX;
+    const currentY = (e.clientY - rect.top) * scaleY;
+
+    let width = currentX - startPos.current.x;
+    let height = aspect ? width / aspect : currentY - startPos.current.y;
+
+    setCropRect({
+      x: width < 0 ? currentX : startPos.current.x,
+      y: height < 0 ? currentY : startPos.current.y,
+      w: Math.abs(width),
+      h: Math.abs(height),
+    });
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
+  if (!currentImageSrc) {
     return (
-      <div className="w-full h-[500px] flex items-center justify-center bg-slate-900/40 rounded-2xl border border-slate-800/80 text-slate-400 text-sm font-medium backdrop-blur-md antialiased">
-        No image loaded to crop. Please upload an image first.
+      <div className="w-full h-[500px] flex items-center justify-center bg-slate-900/40 rounded-2xl border border-slate-800 text-slate-400 text-sm">
+        No image loaded to crop.
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4 w-full h-full font-sans antialiased">
-      {/* Workspace Interactive Area */}
-      <div className="relative flex-1 min-h-[500px] bg-slate-950/90 rounded-2xl border border-slate-800/80 flex items-center justify-center overflow-auto p-6 shadow-2xl backdrop-blur-xl">
-        <ReactCrop
-          crop={crop}
-          onChange={(c) => setCrop(c)}
-          onComplete={(c) => setCompletedCrop(c)}
-          aspect={aspect}
-          className="max-h-[480px] max-w-full rounded-xl shadow-2xl overflow-hidden"
-        >
-          <img
-            ref={imgRef}
-            src={currentDisplaySrc}
-            alt="Crop Target"
-            onLoad={onImageLoad}
-            className="max-h-[480px] max-w-full object-contain select-none"
-          />
-        </ReactCrop>
+      {/* Workspace Display */}
+      <div className="relative flex-1 min-h-[500px] bg-slate-950/90 rounded-2xl border border-slate-800/80 flex items-center justify-center p-4 overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          className="max-h-[480px] max-w-full object-contain cursor-crosshair rounded-lg border border-slate-800"
+        />
       </div>
 
-      {/* Studio Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-slate-900/90 border border-slate-800/80 rounded-2xl backdrop-blur-md shadow-xl">
-        
-        {/* Aspect Ratio Selectors */}
+      {/* Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
         <div className="flex items-center space-x-1.5 overflow-x-auto">
-          <span className="text-[12px] font-semibold tracking-wide text-slate-300 uppercase mr-2 flex items-center gap-1.5">
+          <span className="text-[12px] font-semibold text-slate-300 uppercase mr-2 flex items-center gap-1.5">
             <CropIcon className="w-3.5 h-3.5 text-cyan-400" /> Ratio
           </span>
           {ASPECT_PRESETS.map((preset) => (
             <button
               key={preset.label}
-              onClick={() => setAspect(preset.value)}
-              className={`text-[12px] font-medium tracking-tight px-3 py-1.5 rounded-lg border transition-all ${
+              onClick={() => {
+                setAspect(preset.value);
+                setCropRect(null);
+              }}
+              className={`text-[12px] font-medium px-3 py-1.5 rounded-lg border transition-all ${
                 aspect === preset.value
-                  ? "bg-cyan-950/90 border-cyan-500 text-cyan-200 shadow-sm shadow-cyan-950"
-                  : "bg-slate-950/60 border-slate-800/80 text-slate-400 hover:text-slate-100 hover:border-slate-700"
+                  ? "bg-cyan-950 border-cyan-500 text-cyan-200"
+                  : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
               }`}
             >
               {preset.label}
@@ -200,76 +265,67 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
           ))}
         </div>
 
-        {/* Rotation & Flip Actions */}
-        <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
+        {/* Rotation Controls */}
+        <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => rotateImageSource(-90)}
-            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
-            title="Rotate Left 90°"
+            onClick={() => rotateImage(-90)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400"
           >
             <RotateLeftIcon className="w-3.5 h-3.5" />
           </Button>
-
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => rotateImageSource(90)}
-            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
-            title="Rotate Right 90°"
+            onClick={() => rotateImage(90)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400"
           >
             <RotateCw className="w-3.5 h-3.5" />
           </Button>
-
-          <div className="w-px h-4 bg-slate-800/80 mx-1" />
-
+          <div className="w-px h-4 bg-slate-800 mx-1" />
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => flipImageSource(true)}
-            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
-            title="Flip Horizontal"
+            onClick={() => flipImage(true)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400"
           >
             <FlipHorizontal className="w-3.5 h-3.5" />
           </Button>
-
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => flipImageSource(false)}
-            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
-            title="Flip Vertical"
+            onClick={() => flipImage(false)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400"
           >
             <FlipVertical className="w-3.5 h-3.5" />
           </Button>
         </div>
 
-        {/* Reset & Apply */}
+        {/* Actions */}
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (imageSrc) setCurrentDisplaySrc(imageSrc);
+              if (imageSrc) {
+                setCurrentImageSrc(imageSrc);
+                setCropRect(null);
+              }
             }}
-            className="h-8 text-[12px] font-medium text-slate-400 hover:text-slate-100 gap-1.5"
+            className="h-8 text-[12px] text-slate-400 hover:text-white gap-1.5"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset
+            <RotateCcw className="w-3.5 h-3.5" /> Reset
           </Button>
-
           <Button
             size="sm"
             onClick={handleApplyCrop}
-            disabled={!completedCrop?.width || !completedCrop?.height}
-            className="h-8 text-[12px] font-semibold tracking-wide bg-cyan-600 hover:bg-cyan-500 text-white gap-1.5 px-4 shadow-lg shadow-cyan-950/50 disabled:opacity-50"
+            disabled={!cropRect}
+            className="h-8 text-[12px] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-1.5 px-4"
           >
-            <Check className="w-3.5 h-3.5" />
-            Crop & Apply
+            <Check className="w-3.5 h-3.5" /> Crop & Apply
           </Button>
         </div>
-
       </div>
     </div>
   );
