@@ -18,9 +18,17 @@ import {
   Zap,
   Globe,
   Search,
+  Presentation,
+  FileSpreadsheet,
+  Code,
+  Shield,
+  LayoutGrid,
+  QrCode,
+  Calculator,
+  CaseSensitive,
 } from "lucide-react";
 
-type Category = "All" | "PDF Tools" | "Image Studio" | "Converters";
+type Category = "All" | "PDF Tools" | "Image Studio" | "Converters" | "Calculators & Utilities";
 
 interface Tool {
   id: string;
@@ -33,15 +41,43 @@ interface Tool {
 }
 
 const tools: Tool[] = [
+  // --- Image Studio ---
+  {
+    id: "image-resizer",
+    name: "Govt Form Image Resizer",
+    description: "Resize photos by KB/MB limits and dimensions (PX, CM, MM, IN) for Govt exam forms.",
+    icon: Maximize2,
+    href: "/tools/image-resizer",
+    category: ["All", "Image Studio"],
+    badge: "Featured",
+  },
   {
     id: "image-crop",
     name: "Photo Editor & Crop",
-    description: "Crop photos, adjust brightness/contrast, apply filters, or create passport size photos easily.",
+    description: "Crop photos, adjust aspect ratio, apply filters, or edit passport photos.",
     icon: Crop,
     href: "/tools/image-crop",
     category: ["All", "Image Studio"],
     badge: "Featured",
   },
+  {
+    id: "image-compressor",
+    name: "Image Compressor",
+    description: "Reduce WebP, PNG & JPG file sizes locally inside your browser.",
+    icon: Minimize2,
+    href: "/tools/image-compressor",
+    category: ["All", "Image Studio"],
+  },
+  {
+    id: "png-to-jpg",
+    name: "PNG to JPG Converter",
+    description: "Convert transparent or heavy PNG files into lightweight JPG format.",
+    icon: ImageIcon,
+    href: "/tools/png-to-jpg",
+    category: ["All", "Converters", "Image Studio"],
+  },
+
+  // --- PDF Tools & Utilities ---
   {
     id: "pdf-compressor",
     name: "PDF Compressor",
@@ -58,6 +94,7 @@ const tools: Tool[] = [
     icon: Combine,
     href: "/tools/pdf-merge",
     category: ["All", "PDF Tools"],
+    badge: "Popular",
   },
   {
     id: "pdf-split",
@@ -68,6 +105,24 @@ const tools: Tool[] = [
     category: ["All", "PDF Tools"],
   },
   {
+    id: "pdf-organize",
+    name: "Organize PDF Pages",
+    description: "Rotate, reorder, or delete specific pages from your PDF documents.",
+    icon: LayoutGrid,
+    href: "/tools/pdf-organize",
+    category: ["All", "PDF Tools"],
+  },
+  {
+    id: "pdf-protect",
+    name: "Protect PDF",
+    description: "Encrypt and lock your sensitive PDF documents with custom passwords.",
+    icon: Lock,
+    href: "/tools/pdf-protect",
+    category: ["All", "PDF Tools"],
+  },
+
+  // --- Converters: To PDF ---
+  {
     id: "jpg-to-pdf",
     name: "JPG to PDF",
     description: "Turn your photos, scans, and images into formatted PDF files.",
@@ -76,40 +131,122 @@ const tools: Tool[] = [
     category: ["All", "Converters"],
   },
   {
-    id: "image-compressor",
-    name: "Image Compressor",
-    description: "Reduce WebP, PNG & JPG file sizes locally inside your browser.",
-    icon: Minimize2,
-    href: "/tools/image-compressor",
-    category: ["All", "Image Studio"],
+    id: "word-to-pdf",
+    name: "Word to PDF",
+    description: "Convert Microsoft Word (.docx) documents into clean PDF files.",
+    icon: FileText,
+    href: "/tools/word-to-pdf",
+    category: ["All", "Converters"],
   },
   {
-    id: "image-resizer",
-    name: "Image Resizer",
-    description: "Change pixel dimensions or scale images by exact percentages.",
-    icon: Maximize2,
-    href: "/tools/image-resizer",
-    category: ["All", "Image Studio"],
+    id: "powerpoint-to-pdf",
+    name: "PowerPoint to PDF",
+    description: "Turn PPTX presentation slides into formatted PDF files.",
+    icon: Presentation,
+    href: "/tools/powerpoint-to-pdf",
+    category: ["All", "Converters"],
   },
   {
-    id: "png-to-jpg",
-    name: "PNG to JPG Converter",
-    description: "Convert transparent or heavy PNG files into light JPG format.",
-    icon: ImageIcon,
-    href: "/tools/png-to-jpg",
-    category: ["All", "Converters", "Image Studio"],
+    id: "excel-to-pdf",
+    name: "Excel to PDF",
+    description: "Convert Excel spreadsheets (.xlsx) to readable PDF tables.",
+    icon: FileSpreadsheet,
+    href: "/tools/excel-to-pdf",
+    category: ["All", "Converters"],
   },
+  {
+    id: "html-to-pdf",
+    name: "HTML to PDF",
+    description: "Render web pages or raw HTML code into standard PDF files.",
+    icon: Code,
+    href: "/tools/html-to-pdf",
+    category: ["All", "Converters"],
+  },
+
+  // --- Converters: From PDF ---
   {
     id: "pdf-to-image",
     name: "PDF to Image",
     description: "Render and download PDF pages as sharp PNG or JPG images.",
-    icon: FileText,
+    icon: ImageIcon,
     href: "/tools/pdf-to-image",
     category: ["All", "Converters"],
   },
+  {
+    id: "pdf-to-word",
+    name: "PDF to Word",
+    description: "Extract text and tables from PDFs into editable Word (.docx) files.",
+    icon: FileText,
+    href: "/tools/pdf-to-word",
+    category: ["All", "Converters"],
+  },
+  {
+    id: "pdf-to-powerpoint",
+    name: "PDF to PowerPoint",
+    description: "Convert PDF documents into editable presentation slides.",
+    icon: Presentation,
+    href: "/tools/pdf-to-powerpoint",
+    category: ["All", "Converters"],
+  },
+  {
+    id: "pdf-to-excel",
+    name: "PDF to Excel",
+    description: "Extract tabular data from PDF files directly into Excel spreadsheets.",
+    icon: FileSpreadsheet,
+    href: "/tools/pdf-to-excel",
+    category: ["All", "Converters"],
+  },
+  {
+    id: "pdf-to-pdfa",
+    name: "PDF to PDF/A",
+    description: "Convert standard PDF files into ISO-compliant long-term archival format.",
+    icon: Shield,
+    href: "/tools/pdf-to-pdfa",
+    category: ["All", "Converters", "PDF Tools"],
+  },
+
+  // --- Calculators & Utilities ---
+  {
+    id: "qr-code-generator",
+    name: "QR Code Generator",
+    description: "Create custom downloadable high-resolution QR codes instantly.",
+    icon: QrCode,
+    href: "/tools/qr-code-generator",
+    category: ["All", "Calculators & Utilities"],
+  },
+  {
+    id: "sip-calculator",
+    name: "SIP Return Calculator",
+    description: "Calculate expected mutual fund returns and total wealth growth.",
+    icon: Calculator,
+    href: "/tools/sip-calculator",
+    category: ["All", "Calculators & Utilities"],
+  },
+  {
+    id: "percentage-calculator",
+    name: "Percentage Calculator",
+    description: "Quick calculations for marks, percentage differences, and discounts.",
+    icon: Calculator,
+    href: "/tools/percentage-calculator",
+    category: ["All", "Calculators & Utilities"],
+  },
+  {
+    id: "text-case-converter",
+    name: "Text Case Converter",
+    description: "Convert text into UPPERCASE, lowercase, Title Case, camelCase, and more.",
+    icon: CaseSensitive,
+    href: "/tools/text-case-converter",
+    category: ["All", "Calculators & Utilities"],
+  },
 ];
 
-const categories: Category[] = ["All", "PDF Tools", "Image Studio", "Converters"];
+const categories: Category[] = [
+  "All",
+  "PDF Tools",
+  "Image Studio",
+  "Converters",
+  "Calculators & Utilities",
+];
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
@@ -151,7 +288,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* New Hero Section */}
+        {/* Hero Section */}
         <section className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
             <ShieldCheck className="w-4 h-4" /> 100% Private Browser Utilities
@@ -175,7 +312,7 @@ export default function Home() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools (e.g. photo editor, compress pdf, resize image)..."
+              placeholder="Search tools (e.g. photo editor, compress pdf, word to pdf, resize image)..."
               className="w-full pl-12 pr-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all text-sm shadow-xl"
             />
           </div>
@@ -200,7 +337,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* New Layout Grid */}
+        {/* Layout Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
           {filteredTools.map((tool) => {
             const Icon = tool.icon;
