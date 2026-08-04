@@ -1,19 +1,32 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ToolKraft - Free Online PDF & Image Utilities",
+  title: "ToolKraft - Free Online PDF & Image Utilities | MyToolKraft",
   description:
-    "Fast, private, browser-based tools to compress PDFs, resize images, and convert formats with zero server upload.",
+    "Fast, private, browser-based tools to compress PDFs, resize images for Govt exam forms, and convert formats with zero server upload.",
+  keywords: [
+    "ToolKraft",
+    "ToolKraft PDF",
+    "mytoolkraft",
+    "ToolKraft resizer",
+    "ToolKraft image resizer",
+    "ToolKraft online tools",
+    "PDF tools online",
+    "image compressor",
+  ],
   metadataBase: new URL("https://mytoolkraft.in"),
+  alternates: {
+    canonical: "https://mytoolkraft.in",
+  },
   verification: {
     google: "JVhRfyFuIT5QjEhV",
   },
   openGraph: {
-    title: "ToolKraft | Private Browser Tools",
+    title: "ToolKraft - Free Online PDF & Image Utilities",
     description:
-      "Compress PDFs, resize images, and convert files 100% locally in your browser.",
+      "Compress PDFs, resize images, and convert files 100% locally in your browser with zero server uploads.",
     url: "https://mytoolkraft.in",
     siteName: "ToolKraft",
     type: "website",
@@ -21,7 +34,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ToolKraft | Private Browser Tools",
+    title: "ToolKraft - Private Browser Utilities",
     description:
       "Compress PDFs, resize images, and convert files 100% locally in your browser.",
   },
