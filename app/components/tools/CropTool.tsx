@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Button } from "@/app/components/ui/Button";
@@ -28,16 +28,19 @@ const ASPECT_PRESETS = [
 ];
 
 export function CropTool({ imageSrc, onApply }: CropToolProps) {
+  const [currentDisplaySrc, setCurrentDisplaySrc] = useState<string | null>(imageSrc || null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [aspect, setAspect] = useState<number | undefined>(undefined);
 
-  // Rotation and Flip States
-  const [rotation, setRotation] = useState<number>(0);
-  const [flipX, setFlipX] = useState<boolean>(false);
-  const [flipY, setFlipY] = useState<boolean>(false);
-
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Sync prop image on upload
+  useEffect(() => {
+    if (imageSrc) {
+      setCurrentDisplaySrc(imageSrc);
+    }
+  }, [imageSrc]);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
@@ -57,68 +60,80 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
     setCrop(initialCrop);
   };
 
-  const handleRotateLeft = () => {
-    setRotation((prev) => (prev - 90) % 360);
+  // Helper to physically bake rotation into image source
+  const rotateImageSource = (degrees: number) => {
+    if (!currentDisplaySrc) return;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.src = currentDisplaySrc;
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rotRad = (degrees * Math.PI) / 180;
+      const isQuarterRotated = Math.abs(degrees % 180) === 90;
+
+      canvas.width = isQuarterRotated ? image.naturalHeight : image.naturalWidth;
+      canvas.height = isQuarterRotated ? image.naturalWidth : image.naturalHeight;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotRad);
+      ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+
+      const rotatedDataUrl = canvas.toDataURL("image/png");
+      setCurrentDisplaySrc(rotatedDataUrl);
+    };
   };
 
-  const handleRotateRight = () => {
-    setRotation((prev) => (prev + 90) % 360);
+  // Helper to physically flip image source
+  const flipImageSource = (horizontal: boolean) => {
+    if (!currentDisplaySrc) return;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.src = currentDisplaySrc;
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(horizontal ? -1 : 1, horizontal ? 1 : -1);
+      ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+
+      const flippedDataUrl = canvas.toDataURL("image/png");
+      setCurrentDisplaySrc(flippedDataUrl);
+    };
   };
 
-  // Fixed Canvas Export Logic handling Rotation, Flips & Scaling correctly
+  // Direct 1:1 Crop Execution
   const handleApplyCrop = () => {
     if (!completedCrop || !imgRef.current || !onApply) return;
 
     const image = imgRef.current;
-    
-    // Scale factor between natural image resolution and displayed DOM size
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    // Step 1: Create a temporary canvas for Full Transformed Image
-    const tempCanvas = document.createElement("canvas");
-    const tempCtx = tempCanvas.getContext("2d");
-
-    if (!tempCtx) return;
-
-    const rotRad = (rotation * Math.PI) / 180;
-    const isQuarterRotated = Math.abs(rotation % 180) === 90;
-
-    // Adjust canvas bounding dimensions based on rotation
-    const boundingWidth = isQuarterRotated ? image.naturalHeight : image.naturalWidth;
-    const boundingHeight = isQuarterRotated ? image.naturalWidth : image.naturalHeight;
-
-    tempCanvas.width = boundingWidth;
-    tempCanvas.height = boundingHeight;
-
-    tempCtx.imageSmoothingQuality = "high";
-
-    // Rotate and Flip relative to canvas center
-    tempCtx.save();
-    tempCtx.translate(boundingWidth / 2, boundingHeight / 2);
-    tempCtx.rotate(rotRad);
-    tempCtx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-    tempCtx.translate(-image.naturalWidth / 2, -image.naturalHeight / 2);
-    tempCtx.drawImage(image, 0, 0);
-    tempCtx.restore();
-
-    // Step 2: Extract Crop Region from Transformed Canvas
     const cropX = completedCrop.x * scaleX;
     const cropY = completedCrop.y * scaleY;
     const cropWidth = completedCrop.width * scaleX;
     const cropHeight = completedCrop.height * scaleY;
 
-    const cropCanvas = document.createElement("canvas");
-    const cropCtx = cropCanvas.getContext("2d");
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
 
-    if (!cropCtx) return;
-
-    cropCanvas.width = cropWidth;
-    cropCanvas.height = cropHeight;
-    cropCtx.imageSmoothingQuality = "high";
-
-    cropCtx.drawImage(
-      tempCanvas,
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+      image,
       cropX,
       cropY,
       cropWidth,
@@ -129,11 +144,11 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
       cropHeight
     );
 
-    const croppedDataUrl = cropCanvas.toDataURL("image/png");
+    const croppedDataUrl = canvas.toDataURL("image/png");
     onApply(croppedDataUrl);
   };
 
-  if (!imageSrc) {
+  if (!currentDisplaySrc) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center bg-slate-900/40 rounded-2xl border border-slate-800/80 text-slate-400 text-sm font-medium backdrop-blur-md antialiased">
         No image loaded to crop. Please upload an image first.
@@ -154,21 +169,18 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
         >
           <img
             ref={imgRef}
-            src={imageSrc}
+            src={currentDisplaySrc}
             alt="Crop Target"
             onLoad={onImageLoad}
-            style={{
-              transform: `rotate(${rotation}deg) scaleX(${flipX ? -1 : 1}) scaleY(${flipY ? -1 : 1})`,
-            }}
-            className="max-h-[480px] max-w-full object-contain select-none transition-transform duration-200 ease-out"
+            className="max-h-[480px] max-w-full object-contain select-none"
           />
         </ReactCrop>
       </div>
 
-      {/* Premium Studio Controls Toolbar */}
+      {/* Studio Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-slate-900/90 border border-slate-800/80 rounded-2xl backdrop-blur-md shadow-xl">
         
-        {/* Left: Aspect Ratio Selectors */}
+        {/* Aspect Ratio Selectors */}
         <div className="flex items-center space-x-1.5 overflow-x-auto">
           <span className="text-[12px] font-semibold tracking-wide text-slate-300 uppercase mr-2 flex items-center gap-1.5">
             <CropIcon className="w-3.5 h-3.5 text-cyan-400" /> Ratio
@@ -188,12 +200,12 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
           ))}
         </div>
 
-        {/* Center: Rotation & Flip Tools */}
+        {/* Rotation & Flip Actions */}
         <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleRotateLeft}
+            onClick={() => rotateImageSource(-90)}
             className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
             title="Rotate Left 90°"
           >
@@ -203,7 +215,7 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleRotateRight}
+            onClick={() => rotateImageSource(90)}
             className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
             title="Rotate Right 90°"
           >
@@ -215,8 +227,8 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setFlipX(!flipX)}
-            className={`h-7 w-7 p-0 hover:bg-slate-900 ${flipX ? "text-cyan-400 bg-slate-900" : "text-slate-300"}`}
+            onClick={() => flipImageSource(true)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
             title="Flip Horizontal"
           >
             <FlipHorizontal className="w-3.5 h-3.5" />
@@ -225,26 +237,21 @@ export function CropTool({ imageSrc, onApply }: CropToolProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setFlipY(!flipY)}
-            className={`h-7 w-7 p-0 hover:bg-slate-900 ${flipY ? "text-cyan-400 bg-slate-900" : "text-slate-300"}`}
+            onClick={() => flipImageSource(false)}
+            className="h-7 w-7 p-0 text-slate-300 hover:text-cyan-400 hover:bg-slate-900"
             title="Flip Vertical"
           >
             <FlipVertical className="w-3.5 h-3.5" />
           </Button>
         </div>
 
-        {/* Right: Reset & Apply Actions */}
+        {/* Reset & Apply */}
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              setRotation(0);
-              setFlipX(false);
-              setFlipY(false);
-              if (imgRef.current) {
-                setCrop({ unit: "%", width: 100, height: 100, x: 0, y: 0 });
-              }
+              if (imageSrc) setCurrentDisplaySrc(imageSrc);
             }}
             className="h-8 text-[12px] font-medium text-slate-400 hover:text-slate-100 gap-1.5"
           >
