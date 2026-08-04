@@ -26,6 +26,7 @@ import {
   QrCode,
   Calculator,
   CaseSensitive,
+  UserCheck,
 } from "lucide-react";
 
 type Category = "All" | "PDF Tools" | "Image Studio" | "Converters" | "Calculators & Utilities";
@@ -41,16 +42,18 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  // --- Image Studio ---
+  // --- Featured Govt Tool ---
   {
-    id: "image-resizer",
-    name: "Govt Form Image Resizer",
-    description: "Resize photos by KB/MB limits and dimensions (PX, CM, MM, IN) for Govt exam forms.",
-    icon: Maximize2,
-    href: "/tools/image-resizer",
+    id: "govt-job-photo-resizer",
+    name: "Govt Exam Photo & Signature Resizer",
+    description: "Resize photos & signatures by precise KB & dimensions for MPSC, SSC, UPSC, Banking & Railway forms.",
+    icon: UserCheck,
+    href: "/tools/govt-job-photo-resizer",
     category: ["All", "Image Studio"],
-    badge: "Featured",
+    badge: "NEW EXAM TOOL",
   },
+
+  // --- Image Studio ---
   {
     id: "image-crop",
     name: "Photo Editor & Crop",
@@ -353,7 +356,7 @@ export default function Home() {
                       <Icon className="w-5 h-5" />
                     </div>
                     {tool.badge && (
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         {tool.badge}
                       </span>
                     )}
