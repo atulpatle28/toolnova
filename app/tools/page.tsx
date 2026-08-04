@@ -21,12 +21,13 @@ export const metadata: Metadata = {
 export default function ToolsPage() {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "ToolKraft",
     "url": "https://mytoolkraft.in",
     "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "All",
-    "description": "Private, browser-based PDF and image processing tools.",
+    "operatingSystem": "Browser",
+    "description":
+      "Private, browser-based PDF and image processing tools with zero server upload.",
     "offers": {
       "@type": "Offer",
       "price": "0",
