@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,85 +9,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+    // Replace with your actual ConvertAPI Secret Key or set CONVERTAPI_SECRET in .env.local
+    const secret = process.env.CONVERTAPI_SECRET || "YOUR_CONVERTAPI_SECRET";
 
-    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-      return NextResponse.json({ error: "Empty spreadsheet file." }, { status: 400 });
+    if (!secret || secret === "YOUR_CONVERTAPI_SECRET") {
+      return NextResponse.json(
+        { error: "ConvertAPI secret key is missing." },
+        { status: 500 }
+      );
     }
 
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: any[][] = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+    const apiFormData = new FormData();
+    apiFormData.append("File", file);
 
-    // Create Vector PDF Document
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    // Page Dimensions (Landscape A4)
-    const pageWidth = 841.89;
-    const pageHeight = 595.28;
-    const margin = 30;
-
-    let page = pdfDoc.addPage([pageWidth, pageHeight]);
-    let y = pageHeight - margin - 15;
-
-    // Header Title
-    page.drawText(`Document: ${file.name}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: fontBold,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-    y -= 25;
-
-    const rowHeight = 18;
-    const maxCols = Math.max(...rows.map((r) => r.length), 1);
-    const colWidth = Math.min((pageWidth - margin * 2) / maxCols, 120);
-
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      if (y < margin + 20) {
-        page = pdfDoc.addPage([pageWidth, pageHeight]);
-        y = pageHeight - margin - 20;
+    // High-precision LibreOffice Server Conversion
+    const response = await fetch(
+      `https://v2.convertapi.com/convert/excel/to/pdf?Secret=${secret}`,
+      {
+        method: "POST",
+        body: apiFormData,
       }
+    );
 
-      const row = rows[rowIndex];
-      const isHeader = rowIndex === 0;
-
-      for (let colIndex = 0; colIndex < row.length; colIndex++) {
-        const cellText = String(row[colIndex] ?? "").trim();
-        const x = margin + colIndex * colWidth;
-
-        page.drawRectangle({
-          x,
-          y: y - 4,
-          width: colWidth,
-          height: rowHeight,
-          borderColor: rgb(0.8, 0.8, 0.8),
-          borderWidth: 0.5,
-          color: isHeader ? rgb(0.92, 0.95, 0.98) : rgb(1, 1, 1),
-        });
-
-        if (cellText) {
-          const truncatedText =
-            cellText.length > 18 ? cellText.substring(0, 15) + "..." : cellText;
-          page.drawText(truncatedText, {
-            x: x + 4,
-            y: y,
-            size: 8,
-            font: isHeader ? fontBold : font,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-        }
-      }
-      y -= rowHeight;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("ConvertAPI Error Details:", errorData);
+      return NextResponse.json(
+        { error: errorData.Message || "Failed to convert file via ConvertAPI." },
+        { status: 500 }
+      );
     }
 
-    const pdfBytes = await pdfDoc.save();
+    const result = await response.json();
 
-    // Convert Uint8Array to Buffer for Next.js BodyInit compatibility
-    const pdfBuffer = Buffer.from(pdfBytes);
+    if (!result.Files || !result.Files[0] || !result.Files[0].FileData) {
+      return NextResponse.json(
+        { error: "Invalid response from conversion engine." },
+        { status: 500 }
+      );
+    }
+
+    // Decode Base64 string to PDF binary buffer
+    const pdfBase64 = result.Files[0].FileData;
+    const pdfBuffer = Buffer.from(pdfBase64, "base64");
 
     return new NextResponse(pdfBuffer, {
       headers: {
@@ -98,7 +60,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Excel Server Error:", error);
-    return NextResponse.json({ error: "Failed to convert file." }, { status: 500 });
+    console.error("Server Conversion Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to process Excel file." },
+      { status: 500 }
+    );
   }
 }
