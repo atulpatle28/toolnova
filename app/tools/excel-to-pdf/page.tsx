@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,16 +12,12 @@ export default function ExcelToPdfPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const previewTableRef = useRef<HTMLDivElement>(null);
-  const [tableHtml, setTableHtml] = useState<string>("");
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       setPdfUrl(null);
       setErrorMsg(null);
-      setTableHtml("");
     }
   };
 
@@ -43,48 +38,50 @@ export default function ExcelToPdfPage() {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
 
-      // Convert Sheet to HTML string with exact table styling
-      const htmlString = XLSX.utils.sheet_to_html(worksheet, { id: "excel-render-table" });
-      setTableHtml(htmlString);
+      // Convert sheet to structured HTML table
+      const htmlTableString = XLSX.utils.sheet_to_html(worksheet, { id: "excel-pdf-render" });
 
-      // Wait for DOM to render the preview table
-      setTimeout(async () => {
-        if (!previewTableRef.current) return;
+      // Create a temporary visible container outside screen for clean rendering
+      const tempDiv = document.createElement("div");
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      tempDiv.style.top = "0";
+      tempDiv.style.width = "800px";
+      tempDiv.style.backgroundColor = "#ffffff";
+      tempDiv.style.color = "#000000";
+      tempDiv.style.padding = "20px";
+      tempDiv.innerHTML = `
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 10px; }
+          td, th { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+          th { background-color: #f3f4f6; font-weight: bold; }
+        </style>
+        ${htmlTableString}
+      `;
+      document.body.appendChild(tempDiv);
 
-        const canvas = await html2canvas(previewTableRef.current, {
-          scale: 2, // High resolution capture
-          useCORS: true,
-          backgroundColor: "#ffffff",
-        });
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+      });
 
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "pt", "a4");
-
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-
-        const imgWidth = pageWidth - 40; // 20pt padding
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        let heightLeft = imgHeight;
-        let position = 20;
-
-        // Render multi-page if table is long
-        pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        const pdfBlob = pdf.output("blob");
-        const url = URL.createObjectURL(pdfBlob);
-        setPdfUrl(url);
-        setIsConverting(false);
-      }, 300);
+      // Direct native HTML to PDF conversion
+      await pdf.html(tempDiv, {
+        callback: function (doc) {
+          document.body.removeChild(tempDiv);
+          const pdfBlob = doc.output("blob");
+          const url = URL.createObjectURL(pdfBlob);
+          setPdfUrl(url);
+          setIsConverting(false);
+        },
+        x: 10,
+        y: 10,
+        autoPaging: "text",
+        html2canvas: {
+          scale: 0.75,
+        },
+      });
     } catch (err: any) {
       console.error("Excel Conversion Error:", err);
       setErrorMsg(
@@ -100,7 +97,7 @@ export default function ExcelToPdfPage() {
         <title>Excel to PDF Converter Online - Fast, Free & Private | ToolKraft</title>
         <meta
           name="description"
-          content="Convert Excel spreadsheets (.xlsx, .xls) to PDF documents instantly in your browser with exact layout precision."
+          content="Convert Excel spreadsheets (.xlsx, .xls) to PDF documents instantly in your browser."
         />
       </head>
 
@@ -122,11 +119,11 @@ export default function ExcelToPdfPage() {
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
-              <ShieldCheck className="w-4 h-4" /> Visual Precision Mode Active
+              <ShieldCheck className="w-4 h-4" /> Fast Browser Engine
             </div>
             <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
             <p className="text-slate-400 text-sm mt-2">
-              Convert Excel spreadsheets (.xlsx, .xls) into exact visual PDF documents.
+              Convert Excel spreadsheets (.xlsx, .xls) into formatted PDF documents.
             </p>
           </div>
 
@@ -180,7 +177,7 @@ export default function ExcelToPdfPage() {
                 ) : (
                   <div className="space-y-4">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold">
-                      Exact Visual PDF Generated!
+                      Conversion Completed Successfully!
                     </div>
                     <a
                       href={pdfUrl}
@@ -193,16 +190,6 @@ export default function ExcelToPdfPage() {
                 )}
               </div>
             )}
-          </div>
-
-          {/* Hidden Canvas Render Container for Visual Precision Conversion */}
-          <div className="overflow-hidden h-0 w-0">
-            <div
-              ref={previewTableRef}
-              className="p-6 bg-white text-slate-900 border border-slate-300 rounded text-xs"
-              style={{ width: "1000px" }}
-              dangerouslySetInnerHTML={{ __html: tableHtml }}
-            />
           </div>
         </main>
       </div>
