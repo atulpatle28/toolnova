@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -29,6 +30,7 @@ export default function ExcelToPdfPage() {
 
     try {
       const arrayBuffer = await file.arrayBuffer();
+      // Read Excel binary data (.xls or .xlsx)
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
@@ -38,55 +40,62 @@ export default function ExcelToPdfPage() {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
 
-      // Convert sheet to structured HTML table
-      const htmlTableString = XLSX.utils.sheet_to_html(worksheet, { id: "excel-pdf-render" });
+      // Extract raw 2D array data from sheet
+      const rawData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
-      // Create a temporary visible container outside screen for clean rendering
-      const tempDiv = document.createElement("div");
-      tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px";
-      tempDiv.style.top = "0";
-      tempDiv.style.width = "800px";
-      tempDiv.style.backgroundColor = "#ffffff";
-      tempDiv.style.color = "#000000";
-      tempDiv.style.padding = "20px";
-      tempDiv.innerHTML = `
-        <style>
-          table { border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 10px; }
-          td, th { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
-          th { background-color: #f3f4f6; font-weight: bold; }
-        </style>
-        ${htmlTableString}
-      `;
-      document.body.appendChild(tempDiv);
+      if (rawData.length === 0) {
+        throw new Error("The selected Excel file appears to be empty.");
+      }
 
-      const pdf = new jsPDF({
+      // Initialize landscape A4 PDF for better column coverage
+      const doc = new jsPDF({
         orientation: "landscape",
         unit: "pt",
         format: "a4",
       });
 
-      // Direct native HTML to PDF conversion
-      await pdf.html(tempDiv, {
-        callback: function (doc) {
-          document.body.removeChild(tempDiv);
-          const pdfBlob = doc.output("blob");
-          const url = URL.createObjectURL(pdfBlob);
-          setPdfUrl(url);
-          setIsConverting(false);
+      // Document Title Header
+      doc.setFontSize(12);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`File: ${file.name} | Sheet: ${firstSheetName}`, 40, 30);
+
+      // Separate headers and rows
+      const tableHead = rawData[0] ? [rawData[0].map((cell) => String(cell))] : [];
+      const tableBody = rawData.slice(1).map((row) => row.map((cell) => String(cell)));
+
+      // Render vector table directly into PDF
+      autoTable(doc, {
+        head: tableHead,
+        body: tableBody,
+        startY: 40,
+        margin: { top: 40, right: 30, bottom: 40, left: 30 },
+        styles: {
+          fontSize: 7,
+          cellPadding: 3,
+          textColor: [15, 23, 42],
+          overflow: "linebreak",
         },
-        x: 10,
-        y: 10,
-        autoPaging: "text",
-        html2canvas: {
-          scale: 0.75,
+        headStyles: {
+          fillColor: [16, 185, 129], // Emerald theme
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
         },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        tableWidth: "auto",
+        theme: "grid",
       });
+
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfUrl(url);
     } catch (err: any) {
       console.error("Excel Conversion Error:", err);
       setErrorMsg(
         err.message || "Failed to process Excel file. Please ensure it is a valid .xlsx or .xls file."
       );
+    } finally {
       setIsConverting(false);
     }
   };
@@ -119,11 +128,11 @@ export default function ExcelToPdfPage() {
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
-              <ShieldCheck className="w-4 h-4" /> Fast Browser Engine
+              <ShieldCheck className="w-4 h-4" /> Direct Vector PDF Engine
             </div>
             <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
             <p className="text-slate-400 text-sm mt-2">
-              Convert Excel spreadsheets (.xlsx, .xls) into formatted PDF documents.
+              Convert Excel spreadsheets (.xlsx, .xls) into crisp PDF documents.
             </p>
           </div>
 
