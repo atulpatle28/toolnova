@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,12 +13,16 @@ export default function ExcelToPdfPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const previewTableRef = useRef<HTMLDivElement>(null);
+  const [tableHtml, setTableHtml] = useState<string>("");
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       setPdfUrl(null);
       setErrorMsg(null);
+      setTableHtml("");
     }
   };
 
@@ -30,60 +34,62 @@ export default function ExcelToPdfPage() {
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      // Read Excel spreadsheet (supports both .xls and .xlsx)
-      const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
         throw new Error("No worksheets found in this Excel file.");
       }
 
-      // Read first worksheet
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
 
-      // Convert sheet to JSON rows
-      const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      // Convert Sheet to HTML string with exact table styling
+      const htmlString = XLSX.utils.sheet_to_html(worksheet, { id: "excel-render-table" });
+      setTableHtml(htmlString);
 
-      if (jsonData.length === 0) {
-        throw new Error("The selected Excel sheet appears to be empty.");
-      }
+      // Wait for DOM to render the preview table
+      setTimeout(async () => {
+        if (!previewTableRef.current) return;
 
-      // Initialize PDF document (Landscape mode for wider tables)
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "pt",
-        format: "a4",
-      });
+        const canvas = await html2canvas(previewTableRef.current, {
+          scale: 2, // High resolution capture
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        });
 
-      // Header title in PDF
-      doc.setFontSize(14);
-      doc.text(`Converted Sheet: ${firstSheetName}`, 40, 30);
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "pt", "a4");
 
-      // Extract headers and data rows safely
-      const head = jsonData[0] ? [jsonData[0].map((cell) => String(cell ?? ""))] : [];
-      const body = jsonData.slice(1).map((row) => row.map((cell) => String(cell ?? "")));
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Render Table into PDF
-      autoTable(doc, {
-        head: head,
-        body: body,
-        startY: 45,
-        styles: { fontSize: 8, cellPadding: 4 },
-        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }, // Emerald Green
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-        theme: "grid",
-      });
+        const imgWidth = pageWidth - 40; // 20pt padding
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      // Generate Blob URL for preview and download
-      const pdfBlob = doc.output("blob");
-      const url = URL.createObjectURL(pdfBlob);
-      setPdfUrl(url);
+        let heightLeft = imgHeight;
+        let position = 20;
+
+        // Render multi-page if table is long
+        pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        const pdfBlob = pdf.output("blob");
+        const url = URL.createObjectURL(pdfBlob);
+        setPdfUrl(url);
+        setIsConverting(false);
+      }, 300);
     } catch (err: any) {
       console.error("Excel Conversion Error:", err);
       setErrorMsg(
         err.message || "Failed to process Excel file. Please ensure it is a valid .xlsx or .xls file."
       );
-    } finally {
       setIsConverting(false);
     }
   };
@@ -94,12 +100,11 @@ export default function ExcelToPdfPage() {
         <title>Excel to PDF Converter Online - Fast, Free & Private | ToolKraft</title>
         <meta
           name="description"
-          content="Convert Excel spreadsheets (.xlsx, .xls) to PDF documents instantly in your browser without uploading files to any server. 100% free and private."
+          content="Convert Excel spreadsheets (.xlsx, .xls) to PDF documents instantly in your browser with exact layout precision."
         />
       </head>
 
       <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
-        {/* Header */}
         <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090d16]/80 border-b border-slate-800/80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <Link href="/" className="font-extrabold text-2xl tracking-wide text-white">
@@ -117,11 +122,11 @@ export default function ExcelToPdfPage() {
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
-              <ShieldCheck className="w-4 h-4" /> 100% Client-Side Privacy
+              <ShieldCheck className="w-4 h-4" /> Visual Precision Mode Active
             </div>
             <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
             <p className="text-slate-400 text-sm mt-2">
-              Convert Excel spreadsheets (.xlsx, .xls) into formatted PDF documents easily.
+              Convert Excel spreadsheets (.xlsx, .xls) into exact visual PDF documents.
             </p>
           </div>
 
@@ -136,7 +141,7 @@ export default function ExcelToPdfPage() {
               <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-950/50 rounded-2xl p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center block">
                 <FileSpreadsheet className="w-12 h-12 text-emerald-400 mb-3" />
                 <span className="text-base font-bold text-white">Select Excel File</span>
-                <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls (Up to 50MB)</span>
+                <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls</span>
                 <input
                   type="file"
                   accept=".xlsx, .xls"
@@ -175,7 +180,7 @@ export default function ExcelToPdfPage() {
                 ) : (
                   <div className="space-y-4">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold">
-                      Conversion Completed Successfully!
+                      Exact Visual PDF Generated!
                     </div>
                     <a
                       href={pdfUrl}
@@ -188,6 +193,16 @@ export default function ExcelToPdfPage() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Hidden Canvas Render Container for Visual Precision Conversion */}
+          <div className="overflow-hidden h-0 w-0">
+            <div
+              ref={previewTableRef}
+              className="p-6 bg-white text-slate-900 border border-slate-300 rounded text-xs"
+              style={{ width: "1000px" }}
+              dangerouslySetInnerHTML={{ __html: tableHtml }}
+            />
           </div>
         </main>
       </div>
