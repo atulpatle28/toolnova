@@ -1,155 +1,196 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
-import { Navbar } from "@/components/layout/Navbar";
-import { ArrowLeft, Download, ShieldCheck, Upload, Table, RefreshCw, CheckCircle2 } from "lucide-react";
+import autoTable from "jspdf-autotable";
 
-function ExcelToPdfPage() {
+export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
       setPdfUrl(null);
-      e.target.value = "";
+      setErrorMsg(null);
     }
   };
 
   const convertExcelToPdf = async () => {
     if (!file) return;
+
     setIsConverting(true);
+    setErrorMsg(null);
 
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const doc = new jsPDF();
+      const arrayBuffer = await file.arrayBuffer();
+      // Read Excel spreadsheet (supports both .xls and .xlsx)
+      const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
 
-      workbook.SheetNames.forEach((sheetName, index) => {
-        if (index > 0) doc.addPage();
-        
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error("No worksheets found in this Excel file.");
+      }
 
-        if (jsonData.length > 0) {
-          const head = jsonData[0];
-          const body = jsonData.slice(1);
+      // Read first worksheet
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
 
-          doc.text(`Sheet: ${sheetName}`, 14, 10);
-          (doc as any).autoTable({
-            head: [head],
-            body: body,
-            startY: 15,
-            styles: { fontSize: 8 },
-            theme: "grid",
-          });
-        }
+      // Convert sheet to JSON rows
+      const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonData.length === 0) {
+        throw new Error("The selected Excel sheet appears to be empty.");
+      }
+
+      // Initialize PDF document (Landscape mode for wider tables)
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
       });
 
+      // Header title in PDF
+      doc.setFontSize(14);
+      doc.text(`Converted Sheet: ${firstSheetName}`, 40, 30);
+
+      // Extract headers and data rows safely
+      const head = jsonData[0] ? [jsonData[0].map((cell) => String(cell ?? ""))] : [];
+      const body = jsonData.slice(1).map((row) => row.map((cell) => String(cell ?? "")));
+
+      // Render Table into PDF
+      autoTable(doc, {
+        head: head,
+        body: body,
+        startY: 45,
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }, // Emerald Green
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        theme: "grid",
+      });
+
+      // Generate Blob URL for preview and download
       const pdfBlob = doc.output("blob");
-      setPdfUrl(URL.createObjectURL(pdfBlob));
-    } catch (err) {
-      console.error("Excel conversion error:", err);
-      alert("Failed to convert Excel file. Make sure it's a valid .xlsx or .xls file.");
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfUrl(url);
+    } catch (err: any) {
+      console.error("Excel Conversion Error:", err);
+      setErrorMsg(
+        err.message || "Failed to process Excel file. Please ensure it is a valid .xlsx or .xls file."
+      );
     } finally {
       setIsConverting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar />
+    <>
+      <head>
+        <title>Excel to PDF Converter Online - Fast, Free & Private | ToolKraft</title>
+        <meta
+          name="description"
+          content="Convert Excel spreadsheets (.xlsx, .xls) to PDF documents instantly in your browser without uploading files to any server. 100% free and private."
+        />
+      </head>
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".xlsx, .xls"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
-      <main className="flex-1 max-w-[1200px] w-full mx-auto p-4 sm:p-6 space-y-6">
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900 border border-slate-800">
-          <Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white">
-            <ArrowLeft className="w-4 h-4" /> Back to Workspace
-          </Link>
-          <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> ToolKraft Excel to PDF
-          </span>
-        </div>
-
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-extrabold text-white">EXCEL to PDF Converter</h1>
-          <p className="text-xs text-slate-400">Convert Excel spreadsheets (.xlsx, .xls) into PDF documents easily.</p>
-        </div>
-
-        <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-6">
-          {!file ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-800 hover:border-emerald-500 p-12 rounded-2xl cursor-pointer transition space-y-4 bg-slate-950/50"
+      <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
+        {/* Header */}
+        <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090d16]/80 border-b border-slate-800/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <Link href="/" className="font-extrabold text-2xl tracking-wide text-white">
+              Tool<span className="text-emerald-400">Kraft</span>
+            </Link>
+            <Link
+              href="/"
+              className="text-xs font-semibold text-slate-300 hover:text-emerald-400 flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800"
             >
-              <div className="w-16 h-16 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto">
-                <Table className="w-8 h-8" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-200">Select Excel File</p>
-                <p className="text-xs text-slate-500 mt-1">Supports .xlsx and .xls files</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Table className="w-6 h-6 text-emerald-400" />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-slate-200">{file.name}</p>
-                    <p className="text-[10px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-slate-400 hover:text-white font-bold bg-slate-800 px-3 py-1.5 rounded-lg"
-                >
-                  Change
-                </button>
-              </div>
+              <ArrowLeft className="w-4 h-4 text-emerald-400" /> Back to Tools
+            </Link>
+          </div>
+        </header>
 
-              {!pdfUrl ? (
-                <button
-                  onClick={convertExcelToPdf}
-                  disabled={isConverting}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition"
-                >
-                  {isConverting ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Convert to PDF"}
-                </button>
-              ) : (
-                <div className="p-4 bg-emerald-950/40 border border-emerald-800/50 rounded-2xl space-y-3">
-                  <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> PDF Generated Successfully!
-                  </p>
-                  <a
-                    href={pdfUrl}
-                    download="toolkraft-excel-document.pdf"
-                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition"
-                  >
-                    <Download className="w-4 h-4" /> Download PDF
-                  </a>
-                </div>
-              )}
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
+              <ShieldCheck className="w-4 h-4" /> 100% Client-Side Privacy
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+            <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
+            <p className="text-slate-400 text-sm mt-2">
+              Convert Excel spreadsheets (.xlsx, .xls) into formatted PDF documents easily.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 shadow-xl text-center">
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+                {errorMsg}
+              </div>
+            )}
+
+            {!file ? (
+              <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-950/50 rounded-2xl p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center block">
+                <FileSpreadsheet className="w-12 h-12 text-emerald-400 mb-3" />
+                <span className="text-base font-bold text-white">Select Excel File</span>
+                <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls (Up to 50MB)</span>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-slate-200">{file.name}</p>
+                      <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                  </div>
+                  <label className="text-xs text-emerald-400 hover:underline cursor-pointer">
+                    Change
+                    <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" />
+                  </label>
+                </div>
+
+                {!pdfUrl ? (
+                  <button
+                    onClick={convertExcelToPdf}
+                    disabled={isConverting}
+                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    {isConverting ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      "Convert to PDF Now"
+                    )}
+                  </button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold">
+                      Conversion Completed Successfully!
+                    </div>
+                    <a
+                      href={pdfUrl}
+                      download={`${file.name.replace(/\.[^/.]+$/, "")}.pdf`}
+                      className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                    >
+                      <Download className="w-5 h-5" /> Download PDF
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </>
   );
 }
-
-export default dynamic(() => Promise.resolve(ExcelToPdfPage), { ssr: false });
