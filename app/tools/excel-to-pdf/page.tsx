@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -25,23 +28,75 @@ export default function ExcelToPdfPage() {
     setErrorMsg(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const arrayBuffer = await file.arrayBuffer();
+      // Read binary excel file (.xls / .xlsx)
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
-      const response = await fetch("/api/excel-to-pdf", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to process Excel file.");
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error("No sheets found in this Excel file.");
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert sheet data to 2D array matrix
+      const rawData: any[][] = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: "",
+        raw: false, // Formatting intact
+      });
+
+      if (rawData.length === 0) {
+        throw new Error("The selected Excel spreadsheet is empty.");
+      }
+
+      // Initialize PDF (Landscape A4)
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+      });
+
+      // Header text
+      doc.setFontSize(10);
+      doc.setTextColor(50, 50, 50);
+      doc.text(`Document: ${file.name}`, 40, 30);
+
+      // Separate header and rows safely
+      const tableHead = rawData[0] ? [rawData[0].map((cell) => String(cell ?? ""))] : [];
+      const tableBody = rawData.slice(1).map((row) => row.map((cell) => String(cell ?? "")));
+
+      // Render vector autoTable
+      autoTable(doc, {
+        head: tableHead,
+        body: tableBody,
+        startY: 45,
+        margin: { top: 40, right: 30, bottom: 40, left: 30 },
+        styles: {
+          fontSize: 8,
+          cellPadding: 4,
+          textColor: [30, 41, 59],
+          overflow: "linebreak",
+          lineWidth: 0.5,
+          lineColor: [226, 232, 240],
+        },
+        headStyles: {
+          fillColor: [16, 185, 129], // Emerald
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        theme: "grid",
+      });
+
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
     } catch (err: any) {
-      setErrorMsg("Failed to convert Excel file. Please ensure it is a valid .xls or .xlsx spreadsheet.");
+      console.error("Excel Conversion Error:", err);
+      setErrorMsg("Failed to convert Excel file. Please ensure it is a valid .xlsx or .xls file.");
     } finally {
       setIsConverting(false);
     }
@@ -66,11 +121,11 @@ export default function ExcelToPdfPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
-            <ShieldCheck className="w-4 h-4" /> Serverless Vector PDF Engine
+            <ShieldCheck className="w-4 h-4" /> Client-Side Vector Engine
           </div>
           <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
           <p className="text-slate-400 text-sm mt-2">
-            Convert Excel spreadsheets (.xlsx, .xls) into complete PDF documents.
+            Convert Excel spreadsheets (.xlsx, .xls) into crisp PDF documents.
           </p>
         </div>
 
