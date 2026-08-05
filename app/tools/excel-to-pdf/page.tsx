@@ -2,79 +2,56 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileSpreadsheet, Printer, ShieldCheck } from "lucide-react";
-import * as XLSX from "xlsx";
+import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
 
 export default function ExcelToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [tableHtml, setTableHtml] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      setTableHtml(null);
+      setFile(e.target.files[0]);
+      setPdfUrl(null);
       setErrorMsg(null);
-
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const bstr = evt.target?.result;
-          const wb = XLSX.read(bstr, { type: "binary" });
-          const wsname = wb.SheetNames[0];
-          const ws = wb.Sheets[wsname];
-
-          // Convert sheet to exact styled HTML
-          const html = XLSX.utils.sheet_to_html(ws, { id: "excel-table" });
-          setTableHtml(html);
-        } catch (err) {
-          setErrorMsg("Could not parse Excel file. Please try another .xlsx or .xls file.");
-        }
-      };
-      reader.readAsBinaryString(selectedFile);
     }
   };
 
-  const handlePrintPdf = () => {
-    if (!tableHtml) return;
+  const convertExcelToPdf = async () => {
+    if (!file) return;
 
-    // Open print window with clean A4 landscape CSS styles
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    setIsConverting(true);
+    setErrorMsg(null);
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${file?.name || "Excel Document"}</title>
-          <style>
-            @page { size: A4 landscape; margin: 15mm; }
-            body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #000; }
-            table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-            td, th { border: 1px solid #777; padding: 6px 8px; text-align: left; font-size: 11px; }
-            th { background-color: #f2f2f2; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <h2>${file?.name}</h2>
-          ${tableHtml}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/excel-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process Excel file.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+    } catch (err: any) {
+      setErrorMsg("Failed to convert Excel file. Please ensure it is a valid .xls or .xlsx spreadsheet.");
+    } finally {
+      setIsConverting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090d16]/80 border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="font-extrabold text-2xl text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="font-extrabold text-2xl tracking-wide text-white">
             Tool<span className="text-emerald-400">Kraft</span>
           </Link>
           <Link
@@ -89,11 +66,11 @@ export default function ExcelToPdfPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
-            <ShieldCheck className="w-4 h-4" /> Instant & Free Browser Engine
+            <ShieldCheck className="w-4 h-4" /> Serverless Vector PDF Engine
           </div>
           <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
           <p className="text-slate-400 text-sm mt-2">
-            Convert Excel spreadsheets (.xlsx, .xls) into exact formatted PDF documents.
+            Convert Excel spreadsheets (.xlsx, .xls) into complete PDF documents.
           </p>
         </div>
 
@@ -109,12 +86,7 @@ export default function ExcelToPdfPage() {
               <FileSpreadsheet className="w-12 h-12 text-emerald-400 mb-3" />
               <span className="text-base font-bold text-white">Select Excel File</span>
               <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls</span>
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+              <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" />
             </label>
           ) : (
             <div className="space-y-6">
@@ -132,12 +104,32 @@ export default function ExcelToPdfPage() {
                 </label>
               </div>
 
-              <button
-                onClick={handlePrintPdf}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
-              >
-                <Printer className="w-5 h-5" /> Download / Print PDF
-              </button>
+              {!pdfUrl ? (
+                <button
+                  onClick={convertExcelToPdf}
+                  disabled={isConverting}
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  {isConverting ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Convert to PDF Now"
+                  )}
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold">
+                    Conversion Completed Successfully!
+                  </div>
+                  <a
+                    href={pdfUrl}
+                    download={`${file.name.replace(/\.[^/.]+$/, "")}.pdf`}
+                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    <Download className="w-5 h-5" /> Download PDF
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>
