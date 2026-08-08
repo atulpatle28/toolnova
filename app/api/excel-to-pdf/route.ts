@@ -9,105 +9,98 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const apiKey = process.env.CLOUDCONVERT_API_KEY;
-    if (!apiKey) {
+    const publicKey = process.env.PUBLIC_KEY;
+    const secretKey = process.env.SECRET_KEY;
+
+    if (!publicKey || !secretKey) {
       return NextResponse.json(
-        { error: "CloudConvert API key is missing." },
+        { error: "ILovePDF API Keys missing in environment variables." },
         { status: 500 }
       );
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-
-    // Call CloudConvert API
-    const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
+    // Step 1: Authentication - Get Auth Token
+    const authRes = await fetch("https://api.ilovepdf.com/v1/auth", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tasks: {
-          "import-file": {
-            operation: "import/upload",
-          },
-          "convert-file": {
-            operation: "convert",
-            input: "import-file",
-            output_format: "pdf",
-            engine: "libreoffice",
-            // Unset print area constraints so all tabs & cells render
-            sheet_export_print_area_only: false,
-          },
-          "export-file": {
-            operation: "export/url",
-            input: "convert-file",
-          },
-        },
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ public_key: publicKey }),
     });
 
-    const jobData = await createJobRes.json();
-    if (!createJobRes.ok || !jobData.data) {
-      throw new Error(jobData.message || "Failed to create conversion job.");
+    const authData = await authRes.json();
+    if (!authRes.ok || !authData.token) {
+      throw new Error(authData.error?.message || "ILovePDF Auth Failed.");
     }
 
-    const uploadTask = jobData.data.tasks.find((t: any) => t.name === "import-file");
-    const uploadUrl = uploadTask.result.form.url;
-    const uploadParameters = uploadTask.result.form.parameters;
+    const token = authData.token;
 
+    // Step 2: Start Task (officepdf)
+    const startTaskRes = await fetch("https://api.ilovepdf.com/v1/start/officepdf", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const startTaskData = await startTaskRes.json();
+    if (!startTaskRes.ok || !startTaskData.task || !startTaskData.server) {
+      throw new Error("Failed to start ILovePDF task.");
+    }
+
+    const taskId = startTaskData.task;
+    const server = startTaskData.server;
+
+    // Step 3: Upload File
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const uploadFormData = new FormData();
-    for (const [key, value] of Object.entries(uploadParameters)) {
-      uploadFormData.append(key, value as string);
-    }
+    uploadFormData.append("task", taskId);
     const blob = new Blob([fileBuffer]);
     uploadFormData.append("file", blob, file.name);
 
-    const uploadRes = await fetch(uploadUrl, {
+    const uploadRes = await fetch(`https://${server}/v1/upload`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
       body: uploadFormData,
     });
 
-    if (!uploadRes.ok) {
-      throw new Error("Failed to upload file to conversion server.");
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok || !uploadData.server_filename) {
+      throw new Error("Failed to upload file to ILovePDF server.");
     }
 
-    // Wait for job completion
-    let exportUrl = "";
-    const jobId = jobData.data.id;
+    // Step 4: Process Conversion (Excel to PDF)
+    const processFormData = new FormData();
+    processFormData.append("task", taskId);
+    processFormData.append("tool", "officepdf");
 
-    for (let i = 0; i < 25; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const checkJob = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      const checkData = await checkJob.json();
+    const processRes = await fetch(`https://${server}/v1/process`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: processFormData,
+    });
 
-      if (checkData.data.status === "finished") {
-        const exportTask = checkData.data.tasks.find((t: any) => t.name === "export-file");
-        exportUrl = exportTask.result.files[0].url;
-        break;
-      } else if (checkData.data.status === "error") {
-        console.error("CloudConvert Internal Error:", checkData.data);
-        throw new Error("Conversion engine failed to process the document.");
-      }
+    const processData = await processRes.json();
+    if (!processRes.ok || processData.status !== "TaskSuccess") {
+      throw new Error(processData.error?.message || "Processing failed on ILovePDF.");
     }
 
-    if (!exportUrl) {
-      throw new Error("Conversion process timed out.");
+    // Step 5: Download Converted PDF File
+    const downloadRes = await fetch(`https://${server}/v1/download/${taskId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!downloadRes.ok) {
+      throw new Error("Failed to download PDF from ILovePDF.");
     }
 
-    const pdfRes = await fetch(exportUrl);
-    const pdfBuffer = await pdfRes.arrayBuffer();
+    const pdfArrayBuffer = await downloadRes.arrayBuffer();
 
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(Buffer.from(pdfArrayBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${file.name.replace(/\.[^/.]+$/, "")}.pdf"`,
       },
     });
   } catch (error: any) {
-    console.error("Excel Conversion Error:", error);
+    console.error("ILovePDF Integration Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to convert Excel to PDF." },
       { status: 500 }
