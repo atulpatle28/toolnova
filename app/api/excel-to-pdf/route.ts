@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Create CloudConvert job exporting ALL worksheets
+    // Call CloudConvert API
     const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
       headers: {
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
             operation: "convert",
             input: "import-file",
             output_format: "pdf",
-            engine: "office", // Uses native MS Office engine
-            sheet_export_all: true, // IMPORTANT: Exports ALL sheets/tabs in the Excel workbook
-            sheet_export_fit_to_page: true,
+            engine: "libreoffice",
+            // Unset print area constraints so all tabs & cells render
+            sheet_export_print_area_only: false,
           },
           "export-file": {
             operation: "export/url",
@@ -72,11 +72,11 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to upload file to conversion server.");
     }
 
-    // Wait for conversion completion
+    // Wait for job completion
     let exportUrl = "";
     const jobId = jobData.data.id;
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 25; i++) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       const checkJob = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         exportUrl = exportTask.result.files[0].url;
         break;
       } else if (checkData.data.status === "error") {
+        console.error("CloudConvert Internal Error:", checkData.data);
         throw new Error("Conversion engine failed to process the document.");
       }
     }
