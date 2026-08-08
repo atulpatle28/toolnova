@@ -66,10 +66,12 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to upload file to ILovePDF server.");
     }
 
-    // Step 4: Process Conversion
+    // Step 4: Process Conversion (ADDED server_filename & files parameter)
     const processFormData = new FormData();
     processFormData.append("task", taskId);
     processFormData.append("tool", "officepdf");
+    processFormData.append("files[0][server_filename]", uploadData.server_filename);
+    processFormData.append("files[0][filename]", file.name);
 
     const processRes = await fetch(`https://${server}/v1/process`, {
       method: "POST",
