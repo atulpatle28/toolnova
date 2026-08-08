@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
+import '../../services/database_service.dart';
 import '../chat/chat_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -11,44 +14,13 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   int _currentIndex = 0;
+  final DatabaseService _dbService = DatabaseService();
+  final String _currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   // Filter State
   RangeValues _ageRange = const RangeValues(20, 28);
   double _maxDistance = 10;
   bool _verifiedOnly = true;
-
-  final List<Map<String, dynamic>> _profiles = [
-    {
-      'name': 'Aanya Sharma',
-      'age': 23,
-      'location': 'Mumbai • 3 km away',
-      'bio': 'UI/UX Designer by day, indie music lover by night 🎧. Let\'s talk about design & coffee!',
-      'matchScore': '96% Vibe Match',
-      'tags': ['Design', 'Coffee', 'Indie Rock', 'Travel'],
-      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
-      'verified': true,
-    },
-    {
-      'name': 'Riya Kapoor',
-      'age': 25,
-      'location': 'Bangalore • 5 km away',
-      'bio': 'Software Dev 👩‍💻. Fitness enthusiast, loves weekend drives and street food trails.',
-      'matchScore': '89% Vibe Match',
-      'tags': ['Tech', 'Fitness', 'Road Trips', 'Foodie'],
-      'image': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800&auto=format&fit=crop',
-      'verified': true,
-    },
-    {
-      'name': 'Sneha Patel',
-      'age': 22,
-      'location': 'Pune • 2 km away',
-      'bio': 'Architect 📐. Passionate about photography, rooftop cafes, and sunset walks.',
-      'matchScore': '92% Vibe Match',
-      'tags': ['Architecture', 'Art', 'Sunset', 'Cafes'],
-      'image': 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=800&auto=format&fit=crop',
-      'verified': true,
-    },
-  ];
 
   void _showFilterModal() {
     showModalBottomSheet(
@@ -94,7 +66,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -116,9 +87,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   setState(() => _ageRange = values);
                 },
               ),
-
               const SizedBox(height: 16),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -137,9 +106,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   setState(() => _maxDistance = val);
                 },
               ),
-
               const SizedBox(height: 12),
-
               SwitchListTile(
                 value: _verifiedOnly,
                 activeTrackColor: const Color(0xFFE94057),
@@ -151,9 +118,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 title: const Text('Verified Profiles Only', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                 subtitle: const Text('Show profiles with blue verification badge', style: TextStyle(color: Colors.white38, fontSize: 12)),
               ),
-
               const SizedBox(height: 24),
-
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
@@ -171,27 +136,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  void _handleAction(String actionType) {
-    if (_currentIndex >= _profiles.length) return;
-
-    final currentProfile = _profiles[_currentIndex];
-
+  void _handleAction(String actionType, Map<String, dynamic> profile, int totalProfiles) {
     if (actionType == 'like' || actionType == 'super') {
-      _showMatchDialog(currentProfile);
+      _showMatchDialog(profile);
     } else {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.close_rounded, color: Colors.grey),
-              const SizedBox(width: 10),
-              Text(
-                'Passed ${currentProfile['name']}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
+          content: Text('Passed ${profile['name'] ?? 'User'}'),
           duration: const Duration(milliseconds: 1000),
           backgroundColor: const Color(0xFF161824),
           behavior: SnackBarBehavior.floating,
@@ -241,7 +193,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'You and ${profile['name']} liked each other.',
+                'You and ${profile['name'] ?? 'User'} liked each other.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
@@ -251,14 +203,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 children: [
                   const CircleAvatar(
                     radius: 36,
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
-                    ),
+                    backgroundImage: NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'),
                   ),
                   const SizedBox(width: 16),
                   CircleAvatar(
                     radius: 36,
-                    backgroundImage: NetworkImage(profile['image']),
+                    backgroundImage: NetworkImage(
+                      (profile['photoUrls'] != null && (profile['photoUrls'] as List).isNotEmpty)
+                          ? profile['photoUrls'][0]
+                          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800',
+                    ),
                   ),
                 ],
               ),
@@ -270,8 +224,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ActiveChatRoomScreen(chatData: {
-                        'name': profile['name'],
-                        'image': profile['image'],
+                        'name': profile['name'] ?? 'User',
+                        'image': (profile['photoUrls'] != null && (profile['photoUrls'] as List).isNotEmpty)
+                            ? profile['photoUrls'][0]
+                            : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800',
                         'isOnline': true,
                         'lastMessage': 'You matched! Say hello 👋',
                       }),
@@ -299,8 +255,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasMoreProfiles = _currentIndex < _profiles.length;
-
     return Scaffold(
       backgroundColor: const Color(0xFF0D0E15),
       body: SafeArea(
@@ -316,9 +270,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-                          ),
+                          gradient: LinearGradient(colors: [Color(0xFF8A2387), Color(0xFFE94057)]),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
@@ -350,83 +302,94 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: hasMoreProfiles
-                    ? Dismissible(
-                        key: Key('profile_${_profiles[_currentIndex]['name']}_$_currentIndex'),
-                        onDismissed: (direction) {
-                          if (direction == DismissDirection.startToEnd) {
-                            _handleAction('like');
-                          } else {
-                            _handleAction('pass');
-                          }
-                        },
-                        child: _buildProfileCard(_profiles[_currentIndex]),
-                      )
-                    : _buildEmptyState(),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _dbService.getDiscoverMatches(_currentUid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFFE94057)));
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+                  final profiles = docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+                  // Fallback Mock data if firestore collection is empty
+                  final activeProfiles = profiles.isNotEmpty ? profiles : _getMockProfiles();
+                  final bool hasMoreProfiles = _currentIndex < activeProfiles.length;
+
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: hasMoreProfiles
+                        ? Dismissible(
+                            key: Key('profile_${activeProfiles[_currentIndex]['name']}_$_currentIndex'),
+                            onDismissed: (direction) {
+                              _handleAction(
+                                direction == DismissDirection.startToEnd ? 'like' : 'pass',
+                                activeProfiles[_currentIndex],
+                                activeProfiles.length,
+                              );
+                            },
+                            child: _buildProfileCard(activeProfiles[_currentIndex]),
+                          )
+                        : _buildEmptyState(),
+                  );
+                },
               ),
             ),
-            if (hasMoreProfiles)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20, top: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildActionButton(
-                      icon: Icons.close_rounded,
-                      color: Colors.redAccent,
-                      size: 28,
-                      onTap: () => _handleAction('pass'),
-                    ),
-                    _buildActionButton(
-                      icon: Icons.star_rounded,
-                      color: Colors.amber,
-                      size: 32,
-                      onTap: () => _handleAction('super'),
-                    ),
-                    _buildActionButton(
-                      icon: Icons.favorite_rounded,
-                      color: const Color(0xFFE94057),
-                      size: 32,
-                      onTap: () => _handleAction('like'),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       ),
     );
   }
 
+  List<Map<String, dynamic>> _getMockProfiles() {
+    return [
+      {
+        'name': 'Aanya Sharma',
+        'age': 23,
+        'location': 'Mumbai • 3 km away',
+        'bio': 'UI/UX Designer by day, indie music lover by night 🎧.',
+        'matchScore': '96% Vibe Match',
+        'interests': ['Design', 'Coffee', 'Indie Rock'],
+        'photoUrls': ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800'],
+        'verified': true,
+      },
+      {
+        'name': 'Riya Kapoor',
+        'age': 25,
+        'location': 'Bangalore • 5 km away',
+        'bio': 'Software Dev 👩‍💻. Fitness enthusiast & food traveler.',
+        'matchScore': '89% Vibe Match',
+        'interests': ['Tech', 'Fitness', 'Road Trips'],
+        'photoUrls': ['https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800'],
+        'verified': true,
+      },
+    ];
+  }
+
   Widget _buildProfileCard(Map<String, dynamic> profile) {
+    final String imageUrl = (profile['photoUrls'] != null && (profile['photoUrls'] as List).isNotEmpty)
+        ? profile['photoUrls'][0]
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800';
+
+    final List<String> interests = profile['interests'] != null
+        ? List<String>.from(profile['interests'])
+        : ['Coffee', 'Travel'];
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        image: DecorationImage(
-          image: NetworkImage(profile['image']),
-          fit: BoxFit.cover,
-        ),
+        image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 25, offset: const Offset(0, 10)),
         ],
       ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(32),
           gradient: LinearGradient(
-            colors: [
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.2),
-              Colors.black.withValues(alpha: 0.95),
-            ],
+            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.2), Colors.black.withValues(alpha: 0.95)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             stops: const [0.3, 0.6, 1.0],
@@ -452,12 +415,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     const Icon(Icons.bolt_rounded, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      profile['matchScore'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                      profile['matchScore'] ?? '92% Vibe Match',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ],
                 ),
@@ -469,14 +428,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 Row(
                   children: [
                     Text(
-                      '${profile['name']}, ${profile['age']}',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
+                      '${profile['name'] ?? 'User'}, ${profile['age'] ?? 24}',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
                     ),
-                    if (profile['verified']) ...[
+                    if (profile['verified'] == true) ...[
                       const SizedBox(width: 8),
                       const Icon(Icons.verified_rounded, color: Colors.blueAccent, size: 24),
                     ],
@@ -488,25 +443,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     const Icon(Icons.location_on_rounded, color: Colors.white70, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      profile['location'],
+                      profile['location'] ?? 'Nearby • 2 km away',
                       style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  profile['bio'],
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
-                    height: 1.3,
-                  ),
+                  profile['bio'] ?? 'Living life one vibe at a time ✨',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, height: 1.3),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: (profile['tags'] as List<String>).map((tag) {
+                  children: interests.map((interest) {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -515,12 +466,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                       ),
                       child: Text(
-                        '#$tag',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        interest.startsWith('#') ? interest : '#$interest',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     );
                   }).toList(),
@@ -529,34 +476,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required double size,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFF161824),
-          border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: color, size: size),
       ),
     );
   }
@@ -577,11 +496,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           const SizedBox(height: 20),
           const Text(
             'You\'ve Seen Everyone Nearby!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -591,11 +506,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _currentIndex = 0;
-              });
-            },
+            onPressed: () => setState(() => _currentIndex = 0),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
