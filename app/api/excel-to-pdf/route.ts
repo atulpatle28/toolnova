@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import CloudConvert from "cloudconvert";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,57 +10,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    // Excel file read karein with raw formatting & cell formulas evaluate
-    const workbook = XLSX.read(arrayBuffer, {
-      type: "array",
-      cellStyles: true,
-      cellFormulas: true,
-      cellDates: true,
-      cellNF: true,
-      sheetStubs: true,
-    });
-
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-
-    // Excel sheet ko raw values aur formatted text ke saath parse karein
-    const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-      header: 1,
-      defval: "",
-      raw: false, // Force text conversion for all merged/formula cells
-    });
-
-    if (!jsonData || jsonData.length === 0) {
+    const apiKey = process.env.CLOUDCONVERT_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "Excel file is empty or unreadable." },
-        { status: 400 }
+        { error: "CloudConvert API key is missing on server." },
+        { status: 500 }
       );
     }
 
-    // PDF Create karein
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: "a4",
-    });
+    const cloudConvert = new CloudConvert(apiKey);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // AutoTable layout setup
-    autoTable(doc, {
-      body: jsonData,
-      styles: {
-        fontSize: 7,
-        cellPadding: 3,
-        overflow: "linebreak",
-        lineColor: [200, 200, 200],
-        lineWidth: 0.5,
+    // Create a conversion job with print settings enabled
+    const job = await cloudConvert.jobs.create({
+      tasks: {
+        "upload-file": {
+          operation: "import/upload",
+        },
+        "convert-file": {
+          operation: "convert",
+          input: "upload-file",
+          output_format: "pdf",
+          engine: "office",
+        },
+        "export-file": {
+          operation: "export/url",
+          input: "convert-file",
+        },
       },
-      theme: "grid",
-      margin: { top: 20, right: 15, bottom: 20, left: 15 },
     });
 
-    const pdfOutput = doc.output("arraybuffer");
-    return new NextResponse(Buffer.from(pdfOutput), {
+    const uploadTask = job.tasks.find((task) => task.name === "upload-file");
+    if (!uploadTask || !uploadTask.result?.form) {
+      throw new Error("Failed to initialize upload task.");
+    }
+
+    // Upload file buffer
+    await cloudConvert.tasks.upload(
+      uploadTask,
+      fileBuffer,
+      file.name
+    );
+
+    // Wait for conversion completion
+    const completedJob = await cloudConvert.jobs.wait(job.id);
+    const exportTask = completedJob.tasks.find(
+      (task) => task.name === "export-file"
+    );
+
+    const pdfUrl = exportTask?.result?.files?.[0]?.url;
+
+    if (!pdfUrl) {
+      throw new Error("Failed to retrieve converted PDF URL.");
+    }
+
+    // Fetch binary PDF
+    const pdfResponse = await fetch(pdfUrl);
+    const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+
+    return new NextResponse(Buffer.from(pdfArrayBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${file.name.replace(/\.[^/.]+$/, "")}.pdf"`,
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Conversion Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to convert Excel file." },
+      { error: error.message || "Failed to convert Excel to PDF." },
       { status: 500 }
     );
   }
