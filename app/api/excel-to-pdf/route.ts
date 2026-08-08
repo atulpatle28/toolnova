@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,82 +9,110 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-
-    // Read workbook bypassing macro/formula lock issues
-    const workbook = XLSX.read(arrayBuffer, {
-      type: "array",
-      cellStyles: false,
-      cellDates: true,
-      cellNF: false,
-      sheetStubs: true,
-    });
-
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-
-    // Extract formatted cell strings directly
-    const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, {
-      header: 1,
-      defval: "",
-      raw: false,
-    });
-
-    if (!jsonData || jsonData.length === 0) {
+    const apiKey = process.env.CLOUDCONVERT_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "Excel file is empty or unreadable." },
-        { status: 400 }
+        { error: "CloudConvert API key is missing." },
+        { status: 500 }
       );
     }
 
-    // Filter out completely empty rows
-    const cleanRows = jsonData.filter((row) =>
-      row.some((cell) => cell !== undefined && cell !== null && cell.toString().trim() !== "")
-    );
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Create Landscape A4 Document for Government Forms
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: "a4",
+    // Create job with forced full-sheet rendering parameters
+    const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tasks: {
+          "import-file": {
+            operation: "import/upload",
+          },
+          "convert-file": {
+            operation: "convert",
+            input: "import-file",
+            output_format: "pdf",
+            engine: "libreoffice", // Exact engine used by top online tools
+            sheet_export_print_area_only: false, // Don't restrict to defined print area
+            sheet_export_fit_to_page: true,      // Fit wide tables/forms to page
+            sheet_export_gridlines: false,       // Render layout as original document
+          },
+          "export-file": {
+            operation: "export/url",
+            input: "convert-file",
+          },
+        },
+      }),
     });
 
-    // Add Document Header
-    doc.setFontSize(11);
-    doc.text(`Document: ${file.name}`, 20, 25);
+    const jobData = await createJobRes.json();
+    if (!createJobRes.ok || !jobData.data) {
+      console.error("Job Creation Failed:", jobData);
+      throw new Error(jobData.message || "Failed to create conversion job.");
+    }
 
-    // Generate AutoTable
-    autoTable(doc, {
-      body: cleanRows,
-      startY: 35,
-      styles: {
-        fontSize: 7,
-        cellPadding: 3,
-        overflow: "linebreak",
-        lineColor: [220, 220, 220],
-        lineWidth: 0.5,
-      },
-      headStyles: {
-        fillColor: [16, 185, 129],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      theme: "grid",
-      margin: { top: 20, right: 20, bottom: 20, left: 20 },
+    const uploadTask = jobData.data.tasks.find((t: any) => t.name === "import-file");
+    const uploadUrl = uploadTask.result.form.url;
+    const uploadParameters = uploadTask.result.form.parameters;
+
+    // Build form data for CloudConvert S3 upload
+    const uploadFormData = new FormData();
+    for (const [key, value] of Object.entries(uploadParameters)) {
+      uploadFormData.append(key, value as string);
+    }
+    const blob = new Blob([fileBuffer]);
+    uploadFormData.append("file", blob, file.name);
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: "POST",
+      body: uploadFormData,
     });
 
-    const pdfOutput = doc.output("arraybuffer");
+    if (!uploadRes.ok) {
+      throw new Error("Failed to upload file to conversion server.");
+    }
 
-    return new NextResponse(Buffer.from(pdfOutput), {
+    // Poll until conversion is complete
+    let exportUrl = "";
+    const jobId = jobData.data.id;
+
+    for (let i = 0; i < 20; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Wait 1.5 seconds
+      const checkJob = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const checkData = await checkJob.json();
+
+      if (checkData.data.status === "finished") {
+        const exportTask = checkData.data.tasks.find((t: any) => t.name === "export-file");
+        exportUrl = exportTask.result.files[0].url;
+        break;
+      } else if (checkData.data.status === "error") {
+        throw new Error("Conversion engine failed to process the document.");
+      }
+    }
+
+    if (!exportUrl) {
+      throw new Error("Conversion process timed out.");
+    }
+
+    // Fetch binary PDF output
+    const pdfRes = await fetch(exportUrl);
+    const pdfBuffer = await pdfRes.arrayBuffer();
+
+    return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${file.name.replace(/\.[^/.]+$/, "")}.pdf"`,
       },
     });
   } catch (error: any) {
-    console.error("Excel to PDF conversion error:", error);
+    console.error("Excel Conversion Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process Excel file." },
+      { error: error.message || "Failed to convert Excel to PDF." },
       { status: 500 }
     );
   }
