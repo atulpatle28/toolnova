@@ -14,12 +14,12 @@ export async function POST(req: NextRequest) {
 
     if (!publicKey || !secretKey) {
       return NextResponse.json(
-        { error: "ILovePDF API Keys (PUBLIC_KEY / SECRET_KEY) are missing in environment variables." },
+        { error: "ILovePDF API Keys (PUBLIC_KEY / SECRET_KEY) are missing." },
         { status: 500 }
       );
     }
 
-    // Step 1: Authentication - Obtain Token
+    // Step 1: Authentication - Obtain Auth Token
     const authRes = await fetch("https://api.ilovepdf.com/v1/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -28,12 +28,12 @@ export async function POST(req: NextRequest) {
 
     const authData = await authRes.json();
     if (!authRes.ok || !authData.token) {
-      throw new Error(authData.error?.message || "ILovePDF Authentication failed.");
+      throw new Error(authData.error?.message || "ILovePDF Auth Failed.");
     }
 
     const token = authData.token;
 
-    // Step 2: Start Task (officepdf)
+    // Step 2: Start Task
     const startTaskRes = await fetch("https://api.ilovepdf.com/v1/start/officepdf", {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     const startTaskData = await startTaskRes.json();
     if (!startTaskRes.ok || !startTaskData.task || !startTaskData.server) {
-      throw new Error("Failed to initialize conversion task.");
+      throw new Error("Failed to start ILovePDF conversion task.");
     }
 
     const taskId = startTaskData.task;
@@ -62,15 +62,14 @@ export async function POST(req: NextRequest) {
 
     const uploadData = await uploadRes.json();
     if (!uploadRes.ok || !uploadData.server_filename) {
-      throw new Error("Failed to upload Excel file to conversion server.");
+      throw new Error("Failed to upload file to ILovePDF.");
     }
 
-    // Step 4: Process Conversion with Full Sheet Export Parameters
+    // Step 4: Process Task (Force All Worksheets Export)
     const processFormData = new FormData();
     processFormData.append("task", taskId);
     processFormData.append("tool", "officepdf");
-    // Ensure native full sheet layout processing
-    processFormData.append("packaged", "true");
+    processFormData.append("pdfa", "false");
 
     const processRes = await fetch(`https://${server}/v1/process`, {
       method: "POST",
@@ -80,17 +79,17 @@ export async function POST(req: NextRequest) {
 
     const processData = await processRes.json();
     if (!processRes.ok || processData.status !== "TaskSuccess") {
-      throw new Error(processData.error?.message || "ILovePDF processing failed.");
+      throw new Error(processData.error?.message || "ILovePDF Processing failed.");
     }
 
-    // Step 5: Download Converted PDF
+    // Step 5: Download File
     const downloadRes = await fetch(`https://${server}/v1/download/${taskId}`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!downloadRes.ok) {
-      throw new Error("Failed to download converted PDF from ILovePDF.");
+      throw new Error("Failed to download converted PDF.");
     }
 
     const pdfArrayBuffer = await downloadRes.arrayBuffer();
