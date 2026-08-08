@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Create job with forced full-sheet rendering parameters
+    // Create CloudConvert job exporting ALL worksheets
     const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
       headers: {
@@ -35,10 +35,9 @@ export async function POST(req: NextRequest) {
             operation: "convert",
             input: "import-file",
             output_format: "pdf",
-            engine: "libreoffice", // Exact engine used by top online tools
-            sheet_export_print_area_only: false, // Don't restrict to defined print area
-            sheet_export_fit_to_page: true,      // Fit wide tables/forms to page
-            sheet_export_gridlines: false,       // Render layout as original document
+            engine: "office", // Uses native MS Office engine
+            sheet_export_all: true, // IMPORTANT: Exports ALL sheets/tabs in the Excel workbook
+            sheet_export_fit_to_page: true,
           },
           "export-file": {
             operation: "export/url",
@@ -50,7 +49,6 @@ export async function POST(req: NextRequest) {
 
     const jobData = await createJobRes.json();
     if (!createJobRes.ok || !jobData.data) {
-      console.error("Job Creation Failed:", jobData);
       throw new Error(jobData.message || "Failed to create conversion job.");
     }
 
@@ -58,7 +56,6 @@ export async function POST(req: NextRequest) {
     const uploadUrl = uploadTask.result.form.url;
     const uploadParameters = uploadTask.result.form.parameters;
 
-    // Build form data for CloudConvert S3 upload
     const uploadFormData = new FormData();
     for (const [key, value] of Object.entries(uploadParameters)) {
       uploadFormData.append(key, value as string);
@@ -75,12 +72,12 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to upload file to conversion server.");
     }
 
-    // Poll until conversion is complete
+    // Wait for conversion completion
     let exportUrl = "";
     const jobId = jobData.data.id;
 
     for (let i = 0; i < 20; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Wait 1.5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       const checkJob = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
@@ -99,7 +96,6 @@ export async function POST(req: NextRequest) {
       throw new Error("Conversion process timed out.");
     }
 
-    // Fetch binary PDF output
     const pdfRes = await fetch(exportUrl);
     const pdfBuffer = await pdfRes.arrayBuffer();
 
