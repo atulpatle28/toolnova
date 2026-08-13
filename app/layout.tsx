@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
+import Footer from "./components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -61,8 +62,9 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className="bg-[#090d16] text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950">
-        {children}
+      <body className="bg-[#090d16] text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950 flex flex-col min-h-screen">
+        <div className="flex-grow">{children}</div>
+        <Footer />
         <Analytics />
       </body>
     </html>
