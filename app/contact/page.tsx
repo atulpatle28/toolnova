@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Contact | ToolNova",
-  description: "Get in touch with ToolNova for support, feedback or collaboration requests.",
+  title: "Contact | ToolKraft",
+  description: "Get in touch with ToolKraft for support, feedback or collaboration requests.",
 };
 
 export default function ContactPage() {
@@ -15,7 +15,7 @@ export default function ContactPage() {
           Reach out for support, suggestions or business inquiries. ToolNova is designed to be useful, helpful and easy to use.
         </p>
         <div className="mt-8 rounded-[1.25rem] border border-white/10 bg-white/10 p-5 text-slate-300">
-          <p>Email: hello@toolnova.dev</p>
+          <p>Email: patle.atul28@gmail.com</p>
           <p className="mt-2">Location: Remote, Global</p>
         </div>
         <div className="mt-8 flex flex-wrap gap-3">

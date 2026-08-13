@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | ToolNova",
-  description: "Read ToolNova's privacy policy and how we protect user data.",
+  title: "Privacy Policy | ToolKraft",
+  description: "Read ToolKraft's privacy policy and how we protect user data.",
 };
 
 export default function PrivacyPage() {
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Privacy Policy</p>
         <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Privacy-first by design</h1>
         <p className="mt-4 text-lg leading-8 text-slate-300">
-          ToolNova respects your privacy. Most tools run directly in your browser, and we do not store sensitive data unless you explicitly submit it for a task. We may use analytics and advertising tools to improve the site experience.
+          ToolKraft respects your privacy. Most tools run directly in your browser, and we do not store sensitive data unless you explicitly submit it for a task. We may use analytics and advertising tools to improve the site experience.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">Back home</Link>

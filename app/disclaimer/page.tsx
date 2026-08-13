@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Disclaimer | ToolNova",
-  description: "Review ToolNova's disclaimer for informational and utility-based content.",
+  title: "Disclaimer | ToolKraft",
+  description: "Review ToolKraft's disclaimer for informational and utility-based content.",
 };
 
 export default function DisclaimerPage() {
@@ -12,7 +12,7 @@ export default function DisclaimerPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Disclaimer</p>
         <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Informational use only</h1>
         <p className="mt-4 text-lg leading-8 text-slate-300">
-          ToolNova tools are provided for general informational and educational purposes. Results may vary based on input quality and user calculation criteria. Please verify important decisions independently.
+          ToolKraft tools are provided for general informational and educational purposes. Results may vary based on input quality and user calculation criteria. Please verify important decisions independently.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">Back home</Link>

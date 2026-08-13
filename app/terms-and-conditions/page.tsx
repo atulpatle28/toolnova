@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms and Conditions | ToolNova",
-  description: "Understand the terms of use for ToolNova's online tools and content.",
+  title: "Terms and Conditions | ToolKraft",
+  description: "Understand the terms of use for ToolKraft's online tools and content.",
 };
 
 export default function TermsPage() {
@@ -12,7 +12,7 @@ export default function TermsPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Terms and Conditions</p>
         <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Use of our platform</h1>
         <p className="mt-4 text-lg leading-8 text-slate-300">
-          By using ToolNova, you agree to use the tools responsibly and not engage in unlawful or abusive activity. We may update these terms over time and advise users to review them periodically.
+          By using ToolKraft, you agree to use the tools responsibly and not engage in unlawful or abusive activity. We may update these terms over time and advise users to review them periodically.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">Back home</Link>

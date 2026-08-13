@@ -1,7 +1,7 @@
 import { AdminPanel } from "@/app/components/AdminPanel";
 
 export const metadata = {
-  title: "Admin Panel | ToolNova",
+  title: "Admin Panel | ToolKraft",
   description: "Manage tools and blog posts from a simple built-in admin dashboard.",
 };
 
