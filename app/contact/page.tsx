@@ -12,7 +12,7 @@ export default function ContactPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Contact</p>
         <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">We would love to hear from you</h1>
         <p className="mt-4 text-lg leading-8 text-slate-300">
-          Reach out for support, suggestions or business inquiries. ToolNova is designed to be useful, helpful and easy to use.
+          Reach out for support, suggestions or business inquiries. ToolKraft is designed to be useful, helpful and easy to use.
         </p>
         <div className="mt-8 rounded-[1.25rem] border border-white/10 bg-white/10 p-5 text-slate-300">
           <p>Email: patle.atul28@gmail.com</p>
