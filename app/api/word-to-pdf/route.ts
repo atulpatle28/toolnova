@@ -48,12 +48,15 @@ export async function POST(req: NextRequest) {
     const taskId = startTaskData.task;
     const server = startTaskData.server;
 
-    // Step 3: Upload Word File
+    // Step 3: Upload File with Safe Extension
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const isDoc = file.name.toLowerCase().endsWith(".doc");
+    const safeUploadName = isDoc ? "document.doc" : "document.docx";
+
     const uploadFormData = new FormData();
     uploadFormData.append("task", taskId);
     const blob = new Blob([fileBuffer]);
-    uploadFormData.append("file", blob, file.name);
+    uploadFormData.append("file", blob, safeUploadName);
 
     const uploadRes = await fetch(`https://${server}/v1/upload`, {
       method: "POST",
@@ -66,12 +69,12 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to upload Word file to server.");
     }
 
-    // Step 4: Process Conversion (Pass explicit server filename)
+    // Step 4: Process Conversion
     const processFormData = new FormData();
     processFormData.append("task", taskId);
     processFormData.append("tool", "officepdf");
     processFormData.append("files[0][server_filename]", uploadData.server_filename);
-    processFormData.append("files[0][filename]", file.name);
+    processFormData.append("files[0][filename]", safeUploadName);
 
     const processRes = await fetch(`https://${server}/v1/process`, {
       method: "POST",
@@ -84,7 +87,7 @@ export async function POST(req: NextRequest) {
       throw new Error(processData.error?.message || "ILovePDF processing failed.");
     }
 
-    // Step 5: Download Exact Output PDF
+    // Step 5: Download Converted PDF
     const downloadRes = await fetch(`https://${server}/v1/download/${taskId}`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
@@ -96,10 +99,14 @@ export async function POST(req: NextRequest) {
 
     const pdfArrayBuffer = await downloadRes.arrayBuffer();
 
+    // Safe UTF-8 Header Handling for Hindi / Marathi Filenames
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    const encodedFileName = encodeURIComponent(baseName) + ".pdf";
+
     return new NextResponse(Buffer.from(pdfArrayBuffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${file.name.replace(/\.[^/.]+$/, "")}.pdf"`,
+        "Content-Disposition": `attachment; filename="converted.pdf"; filename*=UTF-8''${encodedFileName}`,
       },
     });
   } catch (error: any) {
