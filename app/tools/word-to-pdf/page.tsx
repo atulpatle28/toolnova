@@ -3,9 +3,6 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import mammoth from "mammoth";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { Navbar } from "@/components/layout/Navbar";
 import { ArrowLeft, Download, ShieldCheck, FileText, RefreshCw, CheckCircle2 } from "lucide-react";
 
@@ -28,37 +25,26 @@ function WordToPdfPage() {
     setIsConverting(true);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      const htmlContent = result.value;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Render converted HTML to a hidden DOM element
-      const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
-      container.style.width = "800px";
-      container.style.padding = "40px";
-      container.style.background = "#ffffff";
-      container.style.color = "#000000";
-      container.style.fontFamily = "sans-serif";
-      container.innerHTML = htmlContent;
-      document.body.appendChild(container);
+      // Call our backend API route (ILovePDF Office Engine)
+      const res = await fetch("/api/word-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
 
-      const canvas = await html2canvas(container, { scale: 2 });
-      document.body.removeChild(container);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to convert Word to PDF.");
+      }
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      const pdfBlob = pdf.output("blob");
-      setPdfUrl(URL.createObjectURL(pdfBlob));
-    } catch (err) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+    } catch (err: any) {
       console.error("Word conversion error:", err);
-      alert("Failed to convert Word file. Please upload a valid .docx file.");
+      alert(err.message || "Failed to convert Word file. Please try again.");
     } finally {
       setIsConverting(false);
     }
@@ -71,7 +57,7 @@ function WordToPdfPage() {
       <input
         type="file"
         ref={fileInputRef}
-        accept=".docx"
+        accept=".doc,.docx"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -88,7 +74,7 @@ function WordToPdfPage() {
 
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-extrabold text-white">WORD to PDF Converter</h1>
-          <p className="text-xs text-slate-400">Convert Microsoft Word documents (.docx) into PDF easily.</p>
+          <p className="text-xs text-slate-400">Convert Microsoft Word documents (.doc, .docx) into perfect layout PDF.</p>
         </div>
 
         <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-6">
@@ -102,7 +88,7 @@ function WordToPdfPage() {
               </div>
               <div>
                 <p className="text-lg font-bold text-slate-200">Select Word Document</p>
-                <p className="text-xs text-slate-500 mt-1">Supports .docx files</p>
+                <p className="text-xs text-slate-500 mt-1">Supports .doc and .docx files</p>
               </div>
             </div>
           ) : (
@@ -116,7 +102,10 @@ function WordToPdfPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    setFile(null);
+                    setPdfUrl(null);
+                  }}
                   className="text-xs text-slate-400 hover:text-white font-bold bg-slate-800 px-3 py-1.5 rounded-lg"
                 >
                   Change
@@ -138,7 +127,7 @@ function WordToPdfPage() {
                   </p>
                   <a
                     href={pdfUrl}
-                    download="toolkraft-word-document.pdf"
+                    download={`${file.name.replace(/\.[^/.]+$/, "")}.pdf`}
                     className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition"
                   >
                     <Download className="w-4 h-4" /> Download PDF
