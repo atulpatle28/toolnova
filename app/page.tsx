@@ -1,423 +1,187 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import {
-  FileText,
-  Image as ImageIcon,
-  Minimize2,
-  Maximize2,
-  Combine,
-  Scissors,
-  FileType,
-  Crop,
-  ArrowRight,
-  ShieldCheck,
-  Wrench,
-  Lock,
-  Zap,
-  Globe,
-  Search,
-  Presentation,
-  FileSpreadsheet,
-  Code,
-  Shield,
-  LayoutGrid,
-  QrCode,
-  Calculator,
-  CaseSensitive,
-  UserCheck,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { ALL_TOOLS, CATEGORIES } from "@/lib/tools-registry";
+import { ToolCard } from "@/app/components/ui/tool-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, ShieldCheck, Zap, Sparkles, ArrowRight, Lock, Cpu, Trophy } from "lucide-react";
 
-type Category = "All" | "PDF Tools" | "Image Studio" | "Converters" | "Calculators & Utilities";
-
-interface Tool {
-  id: string;
-  name: string;
-  description: string;
-  icon: any;
-  href: string;
-  category: Category[];
-  badge?: string;
-}
-
-const tools: Tool[] = [
-  // --- High Demand Featured Tools ---
-  {
-    id: "heic-to-jpg",
-    name: "HEIC to JPG / PNG Converter",
-    description: "Convert iPhone HEIC photos to JPG or PNG format instantly inside your browser without quality loss.",
-    icon: FileType,
-    href: "/tools/heic-to-jpg",
-    category: ["All", "Converters", "Image Studio"],
-    badge: "US POPULAR",
-  },
-  {
-    id: "govt-job-photo-resizer",
-    name: "Govt Exam Photo & Signature Resizer",
-    description: "Resize photos & signatures by precise KB & dimensions for MPSC, SSC, UPSC, Banking & Railway forms.",
-    icon: UserCheck,
-    href: "/tools/govt-job-photo-resizer",
-    category: ["All", "Image Studio"],
-    badge: "FEATURED EXAM TOOL",
-  },
-
-  // --- Image Studio ---
-  {
-    id: "image-crop",
-    name: "Photo Editor & Crop",
-    description: "Crop photos, adjust aspect ratio, apply filters, or edit passport photos.",
-    icon: Crop,
-    href: "/tools/image-crop",
-    category: ["All", "Image Studio"],
-  },
-  {
-    id: "image-compressor",
-    name: "Image Compressor",
-    description: "Reduce WebP, PNG & JPG file sizes locally inside your browser.",
-    icon: Minimize2,
-    href: "/tools/image-compressor",
-    category: ["All", "Image Studio"],
-  },
-  {
-    id: "png-to-jpg",
-    name: "PNG to JPG Converter",
-    description: "Convert transparent or heavy PNG files into lightweight JPG format.",
-    icon: ImageIcon,
-    href: "/tools/png-to-jpg",
-    category: ["All", "Converters", "Image Studio"],
-  },
-
-  // --- PDF Tools & Utilities ---
-  {
-    id: "pdf-compressor",
-    name: "PDF Compressor",
-    description: "Ultra-fast browser compression. Shrink PDFs without losing clarity.",
-    icon: Minimize2,
-    href: "/tools/pdf-compressor",
-    category: ["All", "PDF Tools"],
-    badge: "Popular",
-  },
-  {
-    id: "pdf-merge",
-    name: "PDF Merger",
-    description: "Combine multiple PDF documents into a single clean PDF instantly.",
-    icon: Combine,
-    href: "/tools/pdf-merge",
-    category: ["All", "PDF Tools"],
-    badge: "Popular",
-  },
-  {
-    id: "pdf-split",
-    name: "PDF Splitter",
-    description: "Extract specific pages or break large documents into individual files.",
-    icon: Scissors,
-    href: "/tools/pdf-split",
-    category: ["All", "PDF Tools"],
-  },
-  {
-    id: "pdf-organize",
-    name: "Organize PDF Pages",
-    description: "Rotate, reorder, or delete specific pages from your PDF documents.",
-    icon: LayoutGrid,
-    href: "/tools/pdf-organize",
-    category: ["All", "PDF Tools"],
-  },
-  {
-    id: "pdf-protect",
-    name: "Protect PDF",
-    description: "Encrypt and lock your sensitive PDF documents with custom passwords.",
-    icon: Lock,
-    href: "/tools/pdf-protect",
-    category: ["All", "PDF Tools"],
-  },
-
-  // --- Converters: To PDF ---
-  {
-    id: "jpg-to-pdf",
-    name: "JPG to PDF",
-    description: "Turn your photos, scans, and images into formatted PDF files.",
-    icon: FileType,
-    href: "/tools/jpg-to-pdf",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "word-to-pdf",
-    name: "Word to PDF",
-    description: "Convert Microsoft Word (.docx) documents into clean PDF files.",
-    icon: FileText,
-    href: "/tools/word-to-pdf",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "powerpoint-to-pdf",
-    name: "PowerPoint to PDF",
-    description: "Turn PPTX presentation slides into formatted PDF files.",
-    icon: Presentation,
-    href: "/tools/powerpoint-to-pdf",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "excel-to-pdf",
-    name: "Excel to PDF",
-    description: "Convert Excel spreadsheets (.xlsx) to readable PDF tables.",
-    icon: FileSpreadsheet,
-    href: "/tools/excel-to-pdf",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "html-to-pdf",
-    name: "HTML to PDF",
-    description: "Render web pages or raw HTML code into standard PDF files.",
-    icon: Code,
-    href: "/tools/html-to-pdf",
-    category: ["All", "Converters"],
-  },
-
-  // --- Converters: From PDF ---
-  {
-    id: "pdf-to-image",
-    name: "PDF to Image",
-    description: "Render and download PDF pages as sharp PNG or JPG images.",
-    icon: ImageIcon,
-    href: "/tools/pdf-to-image",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "pdf-to-word",
-    name: "PDF to Word",
-    description: "Extract text and tables from PDFs into editable Word (.docx) files.",
-    icon: FileText,
-    href: "/tools/pdf-to-word",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "pdf-to-powerpoint",
-    name: "PDF to PowerPoint",
-    description: "Convert PDF documents into editable presentation slides.",
-    icon: Presentation,
-    href: "/tools/pdf-to-powerpoint",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "pdf-to-excel",
-    name: "PDF to Excel",
-    description: "Extract tabular data from PDF files directly into Excel spreadsheets.",
-    icon: FileSpreadsheet,
-    href: "/tools/pdf-to-excel",
-    category: ["All", "Converters"],
-  },
-  {
-    id: "pdf-to-pdfa",
-    name: "PDF to PDF/A",
-    description: "Convert standard PDF files into ISO-compliant long-term archival format.",
-    icon: Shield,
-    href: "/tools/pdf-to-pdfa",
-    category: ["All", "Converters", "PDF Tools"],
-  },
-
-  // --- Calculators & Utilities ---
-  {
-    id: "qr-code-generator",
-    name: "QR Code Generator",
-    description: "Create custom downloadable high-resolution QR codes instantly.",
-    icon: QrCode,
-    href: "/tools/qr-code-generator",
-    category: ["All", "Calculators & Utilities"],
-  },
-  {
-    id: "sip-calculator",
-    name: "SIP Return Calculator",
-    description: "Calculate expected mutual fund returns and total wealth growth.",
-    icon: Calculator,
-    href: "/tools/sip-calculator",
-    category: ["All", "Calculators & Utilities"],
-  },
-  {
-    id: "percentage-calculator",
-    name: "Percentage Calculator",
-    description: "Quick calculations for marks, percentage differences, and discounts.",
-    icon: Calculator,
-    href: "/tools/percentage-calculator",
-    category: ["All", "Calculators & Utilities"],
-  },
-  {
-    id: "text-case-converter",
-    name: "Text Case Converter",
-    description: "Convert text into UPPERCASE, lowercase, Title Case, camelCase, and more.",
-    icon: CaseSensitive,
-    href: "/tools/text-case-converter",
-    category: ["All", "Calculators & Utilities"],
-  },
-];
-
-const categories: Category[] = [
-  "All",
-  "PDF Tools",
-  "Image Studio",
-  "Converters",
-  "Calculators & Utilities",
-];
-
-export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<Category>("All");
+export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredTools = tools.filter((tool) => {
-    const matchesCategory =
-      activeCategory === "All" || tool.category.includes(activeCategory);
-    const matchesSearch =
-      tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tool.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const popularTools = ALL_TOOLS.filter((tool) => tool.isPopular).slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
-      {/* Background Accent Gradients */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[350px] bg-gradient-to-b from-blue-600/15 via-emerald-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
-
-      {/* Modern Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090d16]/80 border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-xl tracking-tight">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20">
-              <Wrench className="w-5 h-5 text-slate-950" />
-            </div>
-            <span className="text-white font-extrabold text-2xl tracking-wide">
-              Tool<span className="text-emerald-400">Kraft</span>
-            </span>
+    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
+      
+      {/* Contest Announcement Banner */}
+      <div className="bg-gradient-to-r from-emerald-950/80 via-teal-950/60 to-slate-900 border-b border-emerald-500/30 py-2.5 px-4 text-center">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm font-medium text-slate-300">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500 text-slate-950 text-[10px] uppercase tracking-wider">
+            <Trophy className="w-3 h-3" /> New
+          </span>
+          <span>ToolKraft Monthly Contest is live! Win exciting rewards &amp; perks.</span>
+          <Link href="/contest" className="font-bold text-emerald-400 hover:underline inline-flex items-center gap-1">
+            Participate Now &rarr;
           </Link>
-
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-            <Link href="#tools-list" className="hover:text-emerald-400 transition-colors">Tools</Link>
-            <Link href="#privacy" className="hover:text-emerald-400 transition-colors">Security</Link>
-          </nav>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
-        {/* Hero Section */}
-        <section className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
-            <ShieldCheck className="w-4 h-4" /> 100% Private Browser Utilities
-          </div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-20 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800/60 bg-gradient-to-b from-slate-900/50 via-slate-950 to-slate-950">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-5 leading-tight text-white">
-            Fast, Free & Private <br />
-            <span className="bg-gradient-to-r from-blue-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">
-              Document & Image Toolkit
+        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-500/5"
+          >
+            <ShieldCheck className="w-4 h-4" /> 100% Privacy-First &bull; Zero Server File Uploads
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]"
+          >
+            Lightning-Fast Web Utilities <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+              Right in Your Browser
             </span>
-          </h1>
+          </motion.h1>
 
-          <p className="text-slate-400 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-            Process files right inside your browser with maximum speed. Zero server uploads.
-          </p>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed"
+          >
+            Convert documents, resize official exam photos, compress PDFs to exact KB limits, and calculate metrics securely without uploading data to remote servers.
+          </motion.p>
 
-          {/* Search Box */}
-          <div className="relative max-w-lg mx-auto">
-            <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools (e.g. heic to jpg, govt photo resizer, compress pdf)..."
-              className="w-full pl-12 pr-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all text-sm shadow-xl"
-            />
-          </div>
-        </section>
+          {/* Search Box Direct Navigation */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="max-w-xl mx-auto"
+          >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  window.location.href = `/tools?search=${encodeURIComponent(searchQuery)}`;
+                }
+              }}
+              className="relative flex items-center shadow-2xl rounded-2xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition-all p-1"
+            >
+              <Search className="absolute left-4 w-5 h-5 text-slate-400 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search any tool (e.g., HEIC, Word to PDF, EMI, Resizer)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 pr-28 h-12 bg-transparent border-0 text-slate-100 placeholder:text-slate-500 focus-visible:ring-0 focus-visible:outline-none"
+              />
+              <Button type="submit" variant="default" className="h-10 px-5 rounded-xl font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                Search
+              </Button>
+            </form>
+          </motion.div>
 
-        {/* Category Filters */}
-        <section id="tools-list" className="mb-8">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeCategory === category
-                    ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                    : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </section>
+          {/* Quick Stats / Highlights */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-semibold text-slate-400"
+          >
+            <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 text-emerald-400" /> 24+ Production Utilities</span>
+            <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-emerald-400" /> Client-Side Blob RAM</span>
+            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-emerald-400" /> Zero Watermarks</span>
+          </motion.div>
+        </div>
+      </section>
 
-        {/* Layout Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
-          {filteredTools.map((tool) => {
-            const Icon = tool.icon;
+      {/* Categories Quick Bar */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800/40 bg-slate-900/20">
+        <div className="max-w-7xl mx-auto flex items-center justify-start sm:justify-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+          {CATEGORIES.slice(0, 8).map((cat) => {
+            const Icon = cat.icon;
             return (
               <Link
-                key={tool.id}
-                href={tool.href}
-                className="group p-6 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-emerald-500/50 hover:bg-slate-900 transition-all duration-200 flex flex-col justify-between"
+                key={cat.id}
+                href={`/tools?category=${cat.id}`}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900/80 text-slate-300 border border-slate-800 hover:border-emerald-500/40 hover:text-white transition-all whitespace-nowrap shadow-xs"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-slate-950 transition-all">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    {tool.badge && (
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {tool.badge}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors mb-2">
-                    {tool.name}
-                  </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                    {tool.description}
-                  </p>
-                </div>
-
-                <div className="flex items-center text-xs font-bold text-emerald-400 gap-1 pt-3 border-t border-slate-800/50">
-                  <span>Use Tool</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
+                <Icon className="w-4 h-4 text-emerald-400" />
+                {cat.name}
               </Link>
             );
           })}
-        </section>
-
-        {/* Security Highlights */}
-        <section id="privacy" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800/60">
-            <Lock className="w-7 h-7 text-emerald-400 mb-3" />
-            <h3 className="font-bold text-white mb-1">Local Processing</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Files remain on your device. Everything runs in your browser DOM.
-            </p>
-          </div>
-          <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800/60">
-            <Zap className="w-7 h-7 text-emerald-400 mb-3" />
-            <h3 className="font-bold text-white mb-1">Instant Output</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Zero network upload delays. Multi-MB files process in milliseconds.
-            </p>
-          </div>
-          <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800/60">
-            <Globe className="w-7 h-7 text-emerald-400 mb-3" />
-            <h3 className="font-bold text-white mb-1">Always Free</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              No signups, subscriptions, or file limits. Free forever.
-            </p>
-          </div>
-        </section>
-
-      </main>
-
-      <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-[#070a11]">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} ToolKraft. Client-side browser utilities.</p>
         </div>
-      </footer>
+      </section>
+
+      {/* Popular Tools Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-2">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">Most Demanded</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Featured Power Utilities</h2>
+          </div>
+          <Link href="/tools" className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+            View All 24+ Tools <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {popularTools.map((tool, index) => (
+            <ToolCard key={tool.id} tool={tool} index={index} />
+          ))}
+        </div>
+      </section>
+
+      {/* Trust & Architecture Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-800/60 bg-slate-900/30">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Absolute Privacy Guarantee</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Files are processed directly in your device RAM via WebAssembly and HTML5 Canvas. Nothing is ever uploaded to external cloud servers.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Zero Server Latency</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Experience instant file conversion speeds without queuing delays or upload bandwidth caps. Built for maximum web performance.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">Free &amp; Unlimited Access</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              No subscription paywalls, login requirements, or artificial daily export limits. Use every utility as much as you need.
+            </p>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF7C4DFF);
-  static const Color primaryLight = Color(0xFF8B5CF6);
-  static const Color primaryDark = Color(0xFF3B82F6);
-  static const Color lightBackground = Color(0xFFF6F3FF);
-  static const Color darkBackground = Color(0xFF070B16);
-  static const Color darkCard = Color(0xFF11162A);
-  static const Color verifiedBlue = Color(0xFF38BDF8);
-  static const Color emergencyRed = Color(0xFFDC2626);
-  static const Color emergencyBg = Color(0xFFFFF2F2);
-  static const Color premiumBannerBg = Color(0xFFEDE9FE);
+  // App Theme Colors
+  static const Color primary = Color(0xFFE94057);
+  static const Color secondary = Color(0xFF8A2387);
+  static const Color lightBackground = Color(0xFFF8F9FA);
+  static const Color darkBackground = Color(0xFF0D0E15);
+  static const Color darkCard = Color(0xFF161824);
+  static const Color textPrimary = Colors.white;
+  static const Color textSecondary = Colors.white70;
+  static const Color verifiedBlue = Color(0xFF2196F3);
+
+  // Safety & Emergency Colors
+  static const Color emergencyRed = Color(0xFFFF334B);
+  static const Color emergencyBg = Color(0xFF200B0E);
+
+  // Vault Theme Colors
+  static const Color vaultBg = Color(0xFF0B0C10);
+  static const Color vaultCard = Color(0xFF161824);
+  static const Color steelBorder = Color(0xFF2C3246);
+  static const Color neonCyan = Color(0xFF00F0FF);
+  static const Color accentGold = Color(0xFFFFD700);
 }

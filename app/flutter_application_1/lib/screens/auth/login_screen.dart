@@ -348,7 +348,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             );
                           },
-                          child: Text(
+                          child: const Text(
                             'Create Account',
                             style: TextStyle(
                               color: AppColors.primary,

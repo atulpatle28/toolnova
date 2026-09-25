@@ -16,6 +16,11 @@ import {
   X,
   AlertCircle,
   HelpCircle,
+  CheckCircle2,
+  Layers,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
 } from "lucide-react";
 
 interface PDFItem {
@@ -195,7 +200,7 @@ function ElevenZonPdfCompressorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans tracking-tight antialiased">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans tracking-tight antialiased flex flex-col">
       <Navbar />
 
       <input
@@ -207,7 +212,7 @@ function ElevenZonPdfCompressorPage() {
         onChange={handleFileSelect}
       />
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
         <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <Link
             href="/"
@@ -222,10 +227,10 @@ function ElevenZonPdfCompressorPage() {
 
         <div className="text-center space-y-2 max-w-2xl mx-auto">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Compress PDF Online - Reduce PDF Size to 100KB, 200KB Free
+            Compress PDF Online Free
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Shrink PDF file size safely. Target custom KB limits without quality loss or page damage.
+            Reduce PDF file size to 100KB, 200KB, or 500KB online without losing readable text quality or layout formatting.
           </p>
         </div>
 
@@ -254,7 +259,7 @@ function ElevenZonPdfCompressorPage() {
               <Button
                 onClick={handleCompressAll}
                 disabled={items.length === 0 || isCompressingAll}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto cursor-pointer"
               >
                 {isCompressingAll ? (
                   <>
@@ -269,7 +274,7 @@ function ElevenZonPdfCompressorPage() {
                 <Button
                   onClick={clearAll}
                   variant="outline"
-                  className="border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs px-4 py-2.5 rounded-xl"
+                  className="border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer"
                 >
                   Delete All
                 </Button>
@@ -291,7 +296,7 @@ function ElevenZonPdfCompressorPage() {
                   Select PDF Documents
                 </p>
                 <p className="text-xs text-slate-500">
-                  Click to select PDF files to compress
+                  Click to select single or batch PDF files to compress
                 </p>
               </div>
 
@@ -312,7 +317,7 @@ function ElevenZonPdfCompressorPage() {
                   >
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -349,10 +354,10 @@ function ElevenZonPdfCompressorPage() {
                     ) : item.isNotCompressible ? (
                       <div className="w-full space-y-2 pt-1">
                         <p className="text-xs font-extrabold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5" /> Not Compressed
+                          <AlertCircle className="w-3.5 h-3.5" /> Already Optimized
                         </p>
                         <p className="text-[10px] text-slate-400">
-                          File is already fully optimized
+                          Document already at maximum possible compression
                         </p>
                       </div>
                     ) : item.compressedSizeKB ? (
@@ -382,7 +387,7 @@ function ElevenZonPdfCompressorPage() {
                   <div className="w-10 h-10 rounded-full border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
                     <Plus className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Add PDF Files</span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Add More PDFs</span>
                 </div>
               </div>
 
@@ -390,55 +395,177 @@ function ElevenZonPdfCompressorPage() {
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
-                  className="border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  className="border-slate-200 dark:border-slate-800 text-xs font-bold cursor-pointer"
                 >
-                  Select PDF
+                  Select Additional PDFs
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        <section className="max-w-4xl mx-auto space-y-8 pt-6 border-t border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-          <div className="space-y-3">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              How to Compress PDF File Size Online?
+        {/* SEO & AdSense Compliant In-Depth Guide Section */}
+        <section className="max-w-4xl mx-auto space-y-12 pt-6 border-t border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+          
+          {/* Overview */}
+          <div className="space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight border-b border-slate-200 dark:border-slate-800 pb-3">
+              Intelligent PDF Compression &amp; File Size Optimization
             </h2>
-            <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm leading-relaxed pl-1">
-              <li>Upload your PDF file by clicking the <strong>Select PDF</strong> button.</li>
-              <li>Adjust the <strong>Compression Level slider</strong> to target specific KB limits (e.g. 100KB, 200KB, or 500KB).</li>
-              <li>Click <strong>Compress</strong> to automatically resize and shrink your document.</li>
-              <li>Click <strong>Download</strong> to save your newly compressed PDF instantly.</li>
-            </ol>
+            <p className="leading-relaxed text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              Portable Document Format (PDF) files often become excessively heavy due to uncompressed embedded images, high-resolution document scans, unoptimized font subsets, and redundant metadata streams. When attempting to upload government job applications, email legal paperwork, or submit academic thesis papers, strict server thresholds (commonly under 100 KB, 200 KB, or 500 KB) can cause sudden upload rejections.
+            </p>
+            <p className="leading-relaxed text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              The **ToolKraft Smart PDF Compressor** runs a dual-stage compression engine. First, it attempts native object-stream deduplication and structural optimization using `pdf-lib`. If deeper reduction is needed, it leverages client-side canvas rasterization via `pdfjs-dist` to dynamically resample embedded image layers without stripping page layouts or blurring textual information.
+            </p>
           </div>
 
+          {/* Target File Size Benchmark Table */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-blue-600" /> Frequently Asked Questions (SEO FAQs)
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              Recommended Compression Levels for Common Portals
             </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">How to compress PDF to 100KB online?</p>
-                <p className="text-slate-500 dark:text-slate-400">Set the compression slider to a higher percentage (~70%-80%). ToolKraft automatically shrinks your PDF images to reach under 100KB while preserving text readability.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900/40">
+                <thead className="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="p-3 font-semibold">Portal Category</th>
+                    <th className="p-3 font-semibold">Typical Limit Threshold</th>
+                    <th className="p-3 font-semibold">Recommended Slider Setting</th>
+                    <th className="p-3 font-semibold">Visual Detail Retained</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/70 text-slate-600 dark:text-slate-400">
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                    <td className="p-3 font-medium text-slate-900 dark:text-white">Govt Job Portals (MPSC, SSC, UPSC)</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-semibold">100 KB – 300 KB</td>
+                    <td className="p-3">75% – 85%</td>
+                    <td className="p-3">High text sharpness, optimized document stamps</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                    <td className="p-3 font-medium text-slate-900 dark:text-white">Email Attachments (Outlook, Gmail)</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-semibold">Under 10 MB - 25 MB</td>
+                    <td className="p-3">40% – 60%</td>
+                    <td className="p-3">Near-lossless visual layout and embedded graphs</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                    <td className="p-3 font-medium text-slate-900 dark:text-white">Banking &amp; KYC Verification</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-semibold">200 KB – 500 KB</td>
+                    <td className="p-3">60% – 70%</td>
+                    <td className="p-3">Clear account numbers, barcodes, and signatures</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                    <td className="p-3 font-medium text-slate-900 dark:text-white">College Thesis &amp; Project Submissions</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-semibold">Under 2 MB</td>
+                    <td className="p-3">50% – 65%</td>
+                    <td className="p-3">Crisp vector diagrams and clean footnote typography</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Step-by-Step Instructions */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-600" />
+              How to Reduce PDF Size Step-by-Step
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-sm">
+                  1
+                </div>
+                <h4 className="font-semibold text-slate-900 dark:text-white text-base">Select PDF File</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Upload one or multiple PDF documents directly from your computer or mobile storage.
+                </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">Is it safe to reduce PDF size here?</p>
-                <p className="text-slate-500 dark:text-slate-400">Yes! ToolKraft uses client-side processing. Your files remain on your device and are never uploaded to any server.</p>
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-sm">
+                  2
+                </div>
+                <h4 className="font-semibold text-slate-900 dark:text-white text-base">Choose Target Level</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Adjust the slider to control the balance between byte reduction and visual DPI density.
+                </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">Will compressing reduce PDF quality?</p>
-                <p className="text-slate-500 dark:text-slate-400">Our Smart Optimizer uses modern canvas rendering to compress images within the PDF while keeping text crisp and sharp.</p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">Is ToolKraft PDF Compressor free?</p>
-                <p className="text-slate-500 dark:text-slate-400">Yes, it is 100% free with no account registration, watermark, or daily document limits.</p>
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-sm">
+                  3
+                </div>
+                <h4 className="font-semibold text-slate-900 dark:text-white text-base">Instant Download</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Click Compress and download the reduced document without waiting in server queues.
+                </p>
               </div>
             </div>
           </div>
+
+          {/* Privacy & Zero Server Upload Banner */}
+          <div className="p-6 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+              100% Client-Side Privacy: No Server File Retention
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              Confidential identity cards, salary pay slips, and signed legal agreements carry sensitive personal records. While conventional online compressors transmit your confidential PDFs to external cloud servers, ToolKraft compresses PDF binaries locally using web workers within your browser sandbox. Your files never touch a remote server.
+            </p>
+          </div>
+
+          {/* Frequently Asked Questions */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-blue-600" />
+              Frequently Asked Questions (FAQs)
+            </h3>
+
+            <div className="space-y-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80">
+                <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1.5">
+                  How can I compress a PDF to under 100 KB or 200 KB online?
+                </h4>
+                <p className="leading-relaxed">
+                  Upload your PDF and adjust the compression level slider between 75% and 85%. The dual-stage compression engine will resample embedded photo layers and strip redundant object streams to meet strict threshold limits.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80">
+                <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1.5">
+                  Why does the tool sometimes say &quot;File is already fully optimized&quot;?
+                </h4>
+                <p className="leading-relaxed">
+                  If a PDF contains primarily plain vector text without heavy images, or was previously compressed by standard software, further rasterization would increase the file size rather than reduce it. The tool automatically detects this to preserve your original lightweight file.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80">
+                <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1.5">
+                  Is there any limit on the number of pages I can compress?
+                </h4>
+                <p className="leading-relaxed">
+                  No artificial page caps are imposed. The browser-based engine processes pages iteratively with an active progress bar, making it capable of handling large documents directly within your device&apos;s available memory.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cross Navigation Link */}
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Need to convert image files into a single unified PDF?
+            </p>
+            <Link
+              href="/tools/image-to-pdf"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline transition-colors"
+            >
+              <Sparkles className="w-4 h-4" /> Multi-Image to PDF Converter <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
         </section>
       </main>
     </div>

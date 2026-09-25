@@ -1,7 +1,13 @@
-import * as React from "react"
+import * as React from "react";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-import { cn } from "@/lib/utils"
+// 1. Inlined Utility (Zero external dependency)
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
+// 2. Card Root Container
 function Card({
   className,
   size = "default",
@@ -12,84 +18,88 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/60 text-slate-100 shadow-xl backdrop-blur-sm transition-all duration-200",
+        size === "sm" ? "p-4 gap-3 text-xs" : "p-6 gap-4 text-sm",
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
+// 3. Card Header
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
+        "flex flex-col gap-1.5 border-b border-slate-800/60 pb-3",
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// 4. Card Title
+function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   return (
-    <div
+    <h3
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        "text-lg font-bold tracking-tight text-white group-data-[size=sm]/card:text-base",
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+// 5. Card Description
+function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <div
+    <p
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-xs leading-relaxed text-slate-400", className)}
       {...props}
     />
-  )
+  );
 }
 
+// 6. Card Action (Buttons, Badges, Icons placed in top-right)
 function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-action"
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className
-      )}
+      className={cn("ml-auto flex items-center gap-2", className)}
       {...props}
     />
-  )
+  );
 }
 
+// 7. Card Content / Body
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("px-(--card-spacing)", className)}
+      className={cn("flex-1 text-slate-300", className)}
       {...props}
     />
-  )
+  );
 }
 
+// 8. Card Footer
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-(--card-spacing)",
+        "flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs text-slate-400",
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -100,4 +110,4 @@ export {
   CardAction,
   CardDescription,
   CardContent,
-}
+};

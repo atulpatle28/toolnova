@@ -10,6 +10,11 @@ import {
   Type,
   Sliders,
   Trash2,
+  HelpCircle,
+  CheckCircle2,
+  ShieldCheck,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import * as fabric from "fabric";
 
@@ -176,7 +181,7 @@ export default function FabricStudioEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col select-none font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between backdrop-blur-md">
         <Link
           href="/"
@@ -197,6 +202,7 @@ export default function FabricStudioEditor() {
         </button>
       </header>
 
+      {/* Main Studio Canvas Workspace */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
         {/* Workspace Canvas */}
         <div
@@ -388,6 +394,152 @@ export default function FabricStudioEditor() {
           )}
         </div>
       </div>
+
+      {/* SEO & AdSense Compliant Content Section */}
+      <section className="max-w-5xl mx-auto px-6 py-12 space-y-12 text-slate-300 border-t border-slate-800/80">
+        
+        {/* Editor Overview */}
+        <div className="space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight border-b border-slate-800 pb-3">
+            Online Document Redaction & Text Overlay Studio
+          </h2>
+          <p className="leading-relaxed text-sm sm:text-base text-slate-400">
+            The **ToolKraft Fabric Studio Editor** is a client-side document redaction, text correction, and typographical overlay tool designed for precision editing directly within the web browser. Whether you need to patch incorrect dates on certificate scans, mask sensitive personal identification numbers (UIDAI/PAN/Bank details) with solid background patches, or overlay native Devanagari typography (Marathi, Hindi) onto official certificates, our studio delivers real-time vector layering without cloud uploads.
+          </p>
+          <p className="leading-relaxed text-sm sm:text-base text-slate-400">
+            Powered by high-performance HTML5 Canvas and Fabric vector rendering engines, all image operations execute entirely within your computer’s temporary GPU memory. This ensures that sensitive identity documents, financial statements, and scanned affidavits remain 100% confidential without ever touching external web servers.
+          </p>
+        </div>
+
+        {/* Workflow Steps */}
+        <div className="space-y-6">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-blue-400" />
+            Step-by-Step Guide to Redacting & Overlaying Text
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 font-bold flex items-center justify-center text-sm">
+                1
+              </div>
+              <h4 className="font-semibold text-white text-base">Upload Document</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Import any scanned certificate, receipt, or form in PNG, JPG, or WebP format into the interactive workspace.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 font-bold flex items-center justify-center text-sm">
+                2
+              </div>
+              <h4 className="font-semibold text-white text-base">Insert & Redact</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Add text layers, customize fonts (Mukta, Baloo 2, Poppins), or toggle solid color patches to redact background numbers.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 font-bold flex items-center justify-center text-sm">
+                3
+              </div>
+              <h4 className="font-semibold text-white text-base">Export Lossless Image</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Download your finalized document as a pristine, high-resolution PNG image ready for official submission or printing.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Essential Applications */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            Common Document Editing & Redaction Use Cases
+          </h3>
+          <ul className="space-y-3 text-sm text-slate-400">
+            <li className="flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-slate-200">Native Devanagari & Regional Font Patching:</strong> Built-in support for Marathi and Hindi scripts via Mukta and Baloo 2 typography enables seamless correction of regional official forms and name spellings.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-slate-200">KYC & Identity Masking:</strong> Protect sensitive financial and identity records by masking full Aadhaar numbers, PAN card numbers, or bank account balances using solid opaque color redaction patches prior to public uploads.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-slate-200">Govt Job Form Preparation:</strong> Overlay missing registration numbers, roll codes, or timestamps directly onto scanned admit cards, scorecards, and receipts.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Client Side Privacy Guarantee */}
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            Absolute Zero-Server Security Policy
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            Your identity and documents are strictly your own. Unlike conventional cloud editors, ToolKraft processes all vector renders on your device via client-side JavaScript APIs. No uploaded files, redaction blocks, or edited texts are stored, transmitted, or accessible to anyone else.
+          </p>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="space-y-6">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-blue-400" />
+            Frequently Asked Questions (FAQs)
+          </h3>
+
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+              <h4 className="font-semibold text-white text-sm">
+                How do I completely mask background text or sensitive data?
+              </h4>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Click &quot;Insert Advanced Text Layer&quot;, toggle &quot;Solid Background Redaction&quot; to active, and pick a patch color matching your document background (typically pure white). Move the layer over the confidential text to obscure it permanently.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+              <h4 className="font-semibold text-white text-sm">
+                Does the editor degrade original document resolution?
+              </h4>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                No. The editor preserves original pixel dimensions upon canvas initialization and exports final renders in lossless PNG format with zero JPEG compression artifacts.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+              <h4 className="font-semibold text-white text-sm">
+                Are Marathi and Hindi typography ligatures rendered correctly?
+              </h4>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Yes. By integrating the Mukta and Baloo 2 font engines, compound Devanagari consonants (जोडाक्षरे) and complex vowel diacritics render with exact typographical accuracy.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Cross Tool Link */}
+        <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-400">
+            Need to convert your finalized document image into a PDF?
+          </p>
+          <Link
+            href="/tools/word-to-pdf"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Word & Document to PDF Converter <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+      </section>
     </div>
   );
 }

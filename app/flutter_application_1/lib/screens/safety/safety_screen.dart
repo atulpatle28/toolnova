@@ -33,8 +33,8 @@ class SafetyScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.emergency, color: AppColors.emergencyRed),
                     SizedBox(width: 8),
                     Text(
@@ -48,7 +48,8 @@ class SafetyScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                    'Share an incident instantly with our trusted safety team.'),
+                  'Share an incident instantly with our trusted safety team.',
+                ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
                   onPressed: () {},

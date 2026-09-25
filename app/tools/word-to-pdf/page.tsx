@@ -1,145 +1,210 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { Navbar } from "@/components/layout/Navbar";
-import { ArrowLeft, Download, ShieldCheck, FileText, RefreshCw, CheckCircle2 } from "lucide-react";
+import mammoth from "mammoth";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileText, Download, RotateCcw, ShieldCheck, Loader2, UploadCloud } from "lucide-react";
+import { triggerFileDownload, sanitizeFilename } from "@/lib/utils";
 
-function WordToPdfPage() {
+export default function WordToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [isConverting, setIsConverting] = useState(false);
+  const [htmlContent, setHtmlContent] = useState<string>("");
+  const [converting, setConverting] = useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setPdfUrl(null);
-      e.target.value = "";
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = e.target.files?.[0];
+    if (!uploadedFile) return;
+
+    if (!uploadedFile.name.match(/\.(docx)$/i)) {
+      setError("Please upload a valid .docx Word document.");
+      return;
+    }
+
+    setError(null);
+    setPdfUrl(null);
+    setFile(uploadedFile);
+
+    try {
+      const arrayBuffer = await uploadedFile.arrayBuffer();
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      setHtmlContent(result.value);
+    } catch (err: any) {
+      setError("Failed to read Word document. Please ensure it is a valid .docx file.");
     }
   };
 
-  const convertWordToPdf = async () => {
-    if (!file) return;
-    setIsConverting(true);
+  const convertToPdf = async () => {
+    if (!previewRef.current || !file) return;
+
+    setConverting(true);
+    setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Call our backend API route (ILovePDF Office Engine)
-      const res = await fetch("/api/word-to-pdf", {
-        method: "POST",
-        body: formData,
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to convert Word to PDF.");
+      const imgWidth = 210; // A4 size in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      let position = 0;
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.98);
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const pdfBlob = pdf.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
     } catch (err: any) {
-      console.error("Word conversion error:", err);
-      alert(err.message || "Failed to convert Word file. Please try again.");
+      setError("Failed to generate PDF. Please try again.");
     } finally {
-      setIsConverting(false);
+      setConverting(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!pdfUrl || !file) return;
+    const cleanName = sanitizeFilename(file.name, "converted-document");
+    triggerFileDownload(pdfUrl, `${cleanName}.pdf`);
+  };
+
+  const reset = () => {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setFile(null);
+    setHtmlContent("");
+    setPdfUrl(null);
+    setError(null);
+    setConverting(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar />
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".doc,.docx"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
-      <main className="flex-1 max-w-[1200px] w-full mx-auto p-4 sm:p-6 space-y-6">
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900 border border-slate-800">
-          <Link href="/" className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white">
-            <ArrowLeft className="w-4 h-4" /> Back to Workspace
-          </Link>
-          <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4" /> ToolKraft Word to PDF
-          </span>
-        </div>
-
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-extrabold text-white">WORD to PDF Converter</h1>
-          <p className="text-xs text-slate-400">Convert Microsoft Word documents (.doc, .docx) into perfect layout PDF.</p>
-        </div>
-
-        <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-6">
-          {!file ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-800 hover:border-emerald-500 p-12 rounded-2xl cursor-pointer transition space-y-4 bg-slate-950/50"
-            >
-              <div className="w-16 h-16 bg-blue-950 text-blue-400 rounded-2xl flex items-center justify-center mx-auto">
-                <FileText className="w-8 h-8" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto space-y-6">
+        
+        {/* Tool Header Card */}
+        <Card className="border-slate-800 bg-slate-900/60 shadow-xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <CardTitle>Word to PDF Converter</CardTitle>
+                  <CardDescription>
+                    Convert DOCX documents to vector PDF instantly inside your browser.
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-bold text-slate-200">Select Word Document</p>
-                <p className="text-xs text-slate-500 mt-1">Supports .doc and .docx files</p>
-              </div>
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-3 py-1 rounded-full">
+                <ShieldCheck className="w-3.5 h-3.5" /> 100% Private
+              </span>
             </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-blue-400" />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-slate-200">{file.name}</p>
-                    <p className="text-[10px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+          </CardHeader>
+
+          <CardContent className="space-y-5">
+            {error && (
+              <div className="p-3 text-xs rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                {error}
+              </div>
+            )}
+
+            {!file ? (
+              <label className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all bg-slate-950/40">
+                <UploadCloud className="w-10 h-10 text-slate-400 mb-3" />
+                <span className="text-sm font-semibold text-slate-200">
+                  Click or drag Word file (.docx) here
+                </span>
+                <span className="text-xs text-slate-500 mt-1">
+                  Files are processed in-browser. Zero server upload.
+                </span>
+                <input
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </label>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-800 bg-slate-950/80">
+                  <div className="flex items-center gap-3 truncate">
+                    <FileText className="w-5 h-5 text-blue-400 shrink-0" />
+                    <span className="text-sm font-medium text-slate-200 truncate">
+                      {file.name}
+                    </span>
                   </div>
+                  <Button variant="ghost" size="xs" onClick={reset}>
+                    Change
+                  </Button>
                 </div>
-                <button
-                  onClick={() => {
-                    setFile(null);
-                    setPdfUrl(null);
-                  }}
-                  className="text-xs text-slate-400 hover:text-white font-bold bg-slate-800 px-3 py-1.5 rounded-lg"
-                >
-                  Change
-                </button>
-              </div>
 
-              {!pdfUrl ? (
-                <button
-                  onClick={convertWordToPdf}
-                  disabled={isConverting}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition"
-                >
-                  {isConverting ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Convert to PDF"}
-                </button>
-              ) : (
-                <div className="p-4 bg-emerald-950/40 border border-emerald-800/50 rounded-2xl space-y-3">
-                  <p className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> PDF Ready!
-                  </p>
-                  <a
-                    href={pdfUrl}
-                    download={`${file.name.replace(/\.[^/.]+$/, "")}.pdf`}
-                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition"
-                  >
-                    <Download className="w-4 h-4" /> Download PDF
-                  </a>
+                <div className="flex flex-wrap gap-3">
+                  {!pdfUrl ? (
+                    <Button
+                      onClick={convertToPdf}
+                      disabled={converting}
+                      variant="default"
+                      className="flex-1"
+                    >
+                      {converting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Converting Document...
+                        </>
+                      ) : (
+                        "Convert to PDF"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button onClick={handleDownload} variant="default" className="flex-1">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  )}
+
+                  <Button variant="outline" onClick={reset}>
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Hidden Preview Container for Canvas Rendering */}
+        {htmlContent && (
+          <div className="p-8 rounded-2xl border border-slate-800 bg-white text-slate-950 overflow-x-auto shadow-xl">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">
+              Document Preview
+            </p>
+            <div
+              ref={previewRef}
+              className="prose max-w-none text-slate-900 leading-relaxed text-sm"
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default dynamic(() => Promise.resolve(WordToPdfPage), { ssr: false });

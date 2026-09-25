@@ -2,7 +2,19 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileSpreadsheet, Download, RefreshCw, ShieldCheck } from "lucide-react";
+import { 
+  ArrowLeft, 
+  FileSpreadsheet, 
+  Download, 
+  RefreshCw, 
+  ShieldCheck,
+  HelpCircle,
+  CheckCircle2,
+  Table,
+  Sparkles,
+  ArrowRight,
+  FileCheck
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -118,14 +130,14 @@ export default function ExcelToPdfPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-10 space-y-12">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
             <ShieldCheck className="w-4 h-4" /> Client-Side Vector Engine
           </div>
           <h1 className="text-3xl font-black text-white">EXCEL to PDF Converter</h1>
           <p className="text-slate-400 text-sm mt-2">
-            Convert Excel spreadsheets (.xlsx, .xls) into crisp PDF documents.
+            Convert Excel spreadsheets (.xlsx, .xls) into crisp, printable PDF documents.
           </p>
         </div>
 
@@ -140,7 +152,7 @@ export default function ExcelToPdfPage() {
             <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-950/50 rounded-2xl p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center block">
               <FileSpreadsheet className="w-12 h-12 text-emerald-400 mb-3" />
               <span className="text-base font-bold text-white">Select Excel File</span>
-              <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls</span>
+              <span className="text-xs text-slate-400 mt-1">Supports .xlsx and .xls formats</span>
               <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" />
             </label>
           ) : (
@@ -188,6 +200,152 @@ export default function ExcelToPdfPage() {
             </div>
           )}
         </div>
+
+        {/* SEO & AdSense Compliant In-Depth Guide Section */}
+        <section className="space-y-12 text-slate-300 border-t border-slate-800/80 pt-10">
+          
+          {/* Overview Section */}
+          <div className="space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight border-b border-slate-800 pb-3">
+              Fast, Private Excel to PDF Table Conversion
+            </h2>
+            <p className="leading-relaxed text-sm sm:text-base text-slate-400">
+              Spreadsheet documents created in Microsoft Excel or Google Sheets are ideal for computational modeling, accounting sheets, and roster records. However, when sharing financial statements, quotation summaries, or student grade sheets, sending unformatted spreadsheet files can result in distorted table views, missing cell borders, or unauthorized formula alterations. The **ToolKraft Excel to PDF Converter** transforms your tabular records into standard landscape A4 PDF documents while maintaining neat grid layouts.
+            </p>
+            <p className="leading-relaxed text-sm sm:text-base text-slate-400">
+              Using direct client-side parsing libraries (`xlsx` and `jspdf-autotable`), this tool parses structured cell matrices and generates vector-based table borders and text layers on the fly. Cell values, dates, headers, and numeric entries are converted into printable documents without requiring server uploads.
+            </p>
+          </div>
+
+          {/* How It Works Steps */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Table className="w-5 h-5 text-emerald-400" />
+              How to Convert an Excel Sheet to PDF
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold flex items-center justify-center text-sm">
+                  1
+                </div>
+                <h4 className="font-semibold text-white text-base">Select Workbook</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Upload any `.xlsx` or legacy `.xls` document directly from your desktop or phone storage.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold flex items-center justify-center text-sm">
+                  2
+                </div>
+                <h4 className="font-semibold text-white text-base">Vector Generation</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  The client engine reads workbook matrix rows, extracts primary headers, and arranges cells into a structured landscape table.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold flex items-center justify-center text-sm">
+                  3
+                </div>
+                <h4 className="font-semibold text-white text-base">Download Instantly</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Download the generated PDF document, formatted for standard printing and digital record archiving.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefits & Professional Use Cases */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              Key Applications for Spreadsheet to PDF Transformation
+            </h3>
+            <ul className="space-y-3 text-sm text-slate-400">
+              <li className="flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-slate-200">Financial Invoicing & Salary Registers:</strong> Convert monthly payroll rosters, GST breakdown spreadsheets, and expense logs into non-editable PDF records for stakeholders.
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-slate-200">Academic Marks Sheets & Candidate Lists:</strong> Educational institutes and training centers can generate clean student attendance registers or score cards ready for notice boards.
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-slate-200">Inventory & Supply Chain Manifests:</strong> Prevent inadvertent column shifting or formula recalculations when emailing product stock sheets to external vendors.
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Data Security Callout */}
+          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              Zero Cloud Uploads: Complete Client-Side Security
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Confidential business sheets, accounting figures, and customer registries should never be uploaded to public conversion services. ToolKraft parses the spreadsheet binary stream entirely inside your web browser’s memory. No workbook entries, phone numbers, or corporate formulas are sent to any remote server.
+            </p>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-emerald-400" />
+              Frequently Asked Questions (FAQs)
+            </h3>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+                <h4 className="font-semibold text-white text-sm">
+                  Why does the converter use Landscape mode by default?
+                </h4>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Excel files typically contain wide horizontal columns. Landscape A4 orientation provides broader horizontal layout space, helping prevent cramped cells or clipped text.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+                <h4 className="font-semibold text-white text-sm">
+                  Which sheet from the workbook is converted?
+                </h4>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  The tool automatically identifies and converts the first active worksheet in your workbook. Ensure your primary table or report is positioned as Sheet 1 before uploading.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+                <h4 className="font-semibold text-white text-sm">
+                  Are formulas preserved during the conversion?
+                </h4>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Yes, the conversion engine reads evaluated calculation results and displays the rendered values directly into the PDF table cells.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cross Utility Link */}
+          <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-400">
+              Need to convert Word documents (.docx) as well?
+            </p>
+            <Link
+              href="/tools/word-to-pdf"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              <FileCheck className="w-4 h-4" /> Word to PDF Converter <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+        </section>
       </main>
     </div>
   );

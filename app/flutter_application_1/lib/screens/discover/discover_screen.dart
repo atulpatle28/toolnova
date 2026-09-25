@@ -491,7 +491,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               shape: BoxShape.circle,
               color: AppColors.primary.withValues(alpha: 0.1),
             ),
-            child: Icon(Icons.radar_rounded, size: 60, color: AppColors.primary),
+            child: const Icon(Icons.radar_rounded, size: 60, color: AppColors.primary),
           ),
           const SizedBox(height: 20),
           const Text(

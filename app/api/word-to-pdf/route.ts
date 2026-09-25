@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import ILovePDFApi from "@ilovepdf/ilovepdf-nodejs";
+import ILovePDFFile from "@ilovepdf/ilovepdf-nodejs/ILovePDFFile";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  let tempInputPath = "";
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -12,107 +19,60 @@ export async function POST(req: NextRequest) {
     }
 
     const publicKey = process.env.PUBLIC_KEY;
+    const secretKey = process.env.SECRET_KEY;
 
-    if (!publicKey) {
+    if (!publicKey || !secretKey) {
       return NextResponse.json(
-        { error: "PUBLIC_KEY environment variable is missing on server." },
+        { error: "PUBLIC_KEY or SECRET_KEY missing in environment variables." },
         { status: 500 }
       );
     }
 
-    // Step 1: Authenticate with ILovePDF
-    const authRes = await fetch("https://api.ilovepdf.com/v1/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ public_key: publicKey }),
-    });
+    // Initialize ILovePDF API instance
+    const instance = new ILovePDFApi(publicKey, secretKey);
 
-    const authData = await authRes.json();
-    if (!authRes.ok || !authData.token) {
-      throw new Error(authData.error?.message || "ILovePDF Authentication failed.");
-    }
-
-    const token = authData.token;
-
-    // Step 2: Start OfficePDF Task
-    const startTaskRes = await fetch("https://api.ilovepdf.com/v1/start/officepdf", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const startTaskData = await startTaskRes.json();
-    if (!startTaskRes.ok || !startTaskData.task || !startTaskData.server) {
-      throw new Error("Failed to start conversion task.");
-    }
-
-    const taskId = startTaskData.task;
-    const server = startTaskData.server;
-
-    // Step 3: Upload File with Safe Extension
+    // Save uploaded file temporarily in OS temp directory
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const isDoc = file.name.toLowerCase().endsWith(".doc");
-    const safeUploadName = isDoc ? "document.doc" : "document.docx";
+    const tempFileName = `upload_${Date.now()}${isDoc ? ".doc" : ".docx"}`;
+    tempInputPath = path.join(os.tmpdir(), tempFileName);
+    await fs.writeFile(tempInputPath, fileBuffer);
 
-    const uploadFormData = new FormData();
-    uploadFormData.append("task", taskId);
-    const blob = new Blob([fileBuffer]);
-    uploadFormData.append("file", blob, safeUploadName);
+    // Create officepdf task
+    const task = instance.newTask("officepdf");
+    await task.start();
 
-    const uploadRes = await fetch(`https://${server}/v1/upload`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: uploadFormData,
-    });
+    // Add file to task
+    const iLovePdfFile = new ILovePDFFile(tempInputPath);
+    await task.addFile(iLovePdfFile);
 
-    const uploadData = await uploadRes.json();
-    if (!uploadRes.ok || !uploadData.server_filename) {
-      throw new Error("Failed to upload Word file to server.");
-    }
+    // Process file to PDF
+    await task.process();
 
-    // Step 4: Process Conversion
-    const processFormData = new FormData();
-    processFormData.append("task", taskId);
-    processFormData.append("tool", "officepdf");
-    processFormData.append("files[0][server_filename]", uploadData.server_filename);
-    processFormData.append("files[0][filename]", safeUploadName);
+    // Download converted file
+    const downloadBuffer = await task.download();
 
-    const processRes = await fetch(`https://${server}/v1/process`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: processFormData,
-    });
+    // Cleanup temp input file
+    await fs.unlink(tempInputPath).catch(() => {});
 
-    const processData = await processRes.json();
-    if (!processRes.ok || processData.status !== "TaskSuccess") {
-      throw new Error(processData.error?.message || "ILovePDF processing failed.");
-    }
-
-    // Step 5: Download Converted PDF
-    const downloadRes = await fetch(`https://${server}/v1/download/${taskId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!downloadRes.ok) {
-      throw new Error("Failed to download converted PDF.");
-    }
-
-    const pdfArrayBuffer = await downloadRes.arrayBuffer();
-
-    // Safe UTF-8 Header Handling for Hindi / Marathi Filenames
+    // UTF-8 safe filename headers
     const baseName = file.name.replace(/\.[^/.]+$/, "");
     const encodedFileName = encodeURIComponent(baseName) + ".pdf";
 
-    return new NextResponse(Buffer.from(pdfArrayBuffer), {
+    return new NextResponse(Buffer.from(downloadBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="converted.pdf"; filename*=UTF-8''${encodedFileName}`,
       },
     });
   } catch (error: any) {
-    console.error("Word to PDF Server Error:", error);
+    // Cleanup temp file on error
+    if (tempInputPath) {
+      await fs.unlink(tempInputPath).catch(() => {});
+    }
+    console.error("Word to PDF SDK Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to convert Word to PDF." },
+      { error: error?.message || "Failed to convert Word to PDF." },
       { status: 500 }
     );
   }
