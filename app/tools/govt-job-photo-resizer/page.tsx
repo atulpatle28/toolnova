@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { UserCheck, Download, RotateCcw, ShieldCheck, FileCheck } from "lucide-react";
+import { UserCheck, Download, RotateCcw, ShieldCheck } from "lucide-react";
 import { triggerFileDownload, formatBytes, sanitizeFilename } from "@/lib/utils";
 
 interface ExamPreset {
@@ -77,14 +77,11 @@ export default function GovtJobPhotoResizerPage() {
         return;
       }
 
-      // Draw white background (prevents black backgrounds for PNG to JPG conversions)
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
 
-      // Render resized graphic
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Binary search compression quality loop to reach exact target KB limit
       let minQuality = 0.05;
       let maxQuality = 0.98;
       let bestDataUrl = canvas.toDataURL("image/jpeg", maxQuality);
@@ -130,7 +127,6 @@ export default function GovtJobPhotoResizerPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto space-y-6">
-        
         <Card className="border-slate-800 bg-slate-900/60 shadow-xl">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -170,10 +166,9 @@ export default function GovtJobPhotoResizerPage() {
               </label>
             ) : (
               <div className="space-y-5">
-                {/* Presets Selector */}
                 <div className="space-y-2">
                   <Label>Quick Preset Selection</Label>
-                  <Select onValueChange={applyPreset} defaultValue="ssc_photo">
+                  <Select onValueChange={(val: string | null) => { if (val) applyPreset(val); }} defaultValue="ssc_photo">
                     <SelectTrigger>
                       <SelectValue placeholder="Select Exam Preset" />
                     </SelectTrigger>
@@ -187,7 +182,6 @@ export default function GovtJobPhotoResizerPage() {
                   </Select>
                 </div>
 
-                {/* Custom Dimensions & Limits */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="width">Width (px)</Label>
@@ -221,7 +215,6 @@ export default function GovtJobPhotoResizerPage() {
                   </div>
                 </div>
 
-                {/* File Details Comparison */}
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 text-xs">
                   <div>
                     <span className="text-slate-400">Original Size:</span>
@@ -235,7 +228,6 @@ export default function GovtJobPhotoResizerPage() {
                   </div>
                 </div>
 
-                {/* Processing and Actions */}
                 <div className="flex gap-3">
                   {!processedUrl ? (
                     <Button onClick={processImage} disabled={loading} variant="default" className="flex-1">
