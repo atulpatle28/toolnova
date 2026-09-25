@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
-import heic2any from "heic2any";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -42,6 +41,9 @@ function HeicToJpgPage() {
     setError(null);
 
     try {
+      const heic2anyModule = await import("heic2any");
+      const heic2any = heic2anyModule.default || heic2anyModule;
+
       const conversionResult = await heic2any({
         blob: file,
         toType: outputFormat,
