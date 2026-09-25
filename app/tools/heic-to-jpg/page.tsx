@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import heic2any from "heic2any";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { FileType, Download, RotateCcw, ShieldCheck, Loader2, UploadCloud } from "lucide-react";
 import { triggerFileDownload, formatBytes, sanitizeFilename } from "@/lib/utils";
 
-export default function HeicToJpgPage() {
+function HeicToJpgPage() {
   const [file, setFile] = useState<File | null>(null);
   const [outputFormat, setOutputFormat] = useState<"image/jpeg" | "image/png">("image/jpeg");
   const [converting, setConverting] = useState<boolean>(false);
@@ -200,3 +201,5 @@ export default function HeicToJpgPage() {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(HeicToJpgPage), { ssr: false });
