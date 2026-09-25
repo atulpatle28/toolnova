@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Smartphone, Gift, ShieldCheck, CheckCircle2, ArrowLeft, Share2, Copy, Sparkles, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function ContestPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -21,7 +19,6 @@ export default function ContestPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.email && formData.mobile) {
-      // Here you can integrate payment gateway (Razorpay/Stripe) for ₹200 fee in future
       setSubmitted(true);
     }
   };
@@ -131,9 +128,9 @@ export default function ContestPage() {
                       value={referralLink} 
                       className="w-full h-9 bg-slate-950 border border-slate-800 rounded-lg px-3 text-xs text-slate-300 focus:outline-none" 
                     />
-                    <Button onClick={copyToClipboard} size="sm" className="h-9 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold">
+                    <button onClick={copyToClipboard} type="button" className="h-9 px-4 rounded-lg bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold text-xs flex items-center gap-1">
                       {copied ? "Copied!" : <Copy className="w-4 h-4" />}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -141,43 +138,43 @@ export default function ContestPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Full Name</label>
-                  <Input 
+                  <input 
                     type="text" 
                     required
                     placeholder="Rahul Sharma"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="h-11 bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500"
+                    className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Email Address</label>
-                  <Input 
+                  <input 
                     type="email" 
                     required
                     placeholder="rahul@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="h-11 bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500"
+                    className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Mobile Number (WhatsApp Preferred)</label>
-                  <Input 
+                  <input 
                     type="tel" 
                     required
                     placeholder="9876543210"
                     value={formData.mobile}
                     onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    className="h-11 bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500"
+                    className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
-                <Button type="submit" className="w-full h-12 font-bold text-sm bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20">
+                <button type="submit" className="w-full h-12 font-bold text-xs bg-emerald-500 text-slate-950 hover:bg-emerald-400 rounded-xl shadow-lg shadow-emerald-500/20 transition-all">
                   Proceed to Pay ₹200 &amp; Enter Draw
-                </Button>
+                </button>
               </form>
             )}
           </div>
