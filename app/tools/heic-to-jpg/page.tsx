@@ -140,7 +140,7 @@ export default function HeicToJpgPage() {
                   <Label>Target Output Format</Label>
                   <Select
                     defaultValue="image/jpeg"
-                    onValueChange={(val: "image/jpeg" | "image/png") => setOutputFormat(val)}
+                    onValueChange={(val: any) => setOutputFormat(val)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select output format" />
