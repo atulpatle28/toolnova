@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/app/components/ui/Button";
-import { ShieldCheck, Trophy, CheckCircle2, Loader2 } from "lucide-react";
+import { Trophy, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function ContestRegistrationPage() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
@@ -35,16 +35,16 @@ export default function ContestRegistrationPage() {
     }
 
     try {
-      // 1. Order create karein
+      // 1. Order create karein (₹199 = 19900 paise)
       const response = await fetch("/api/contest-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, amount: 99 }), // Entry fee e.g. ₹99
+        body: JSON.stringify({ ...formData, amount: 199 }),
       });
 
       const data = await response.json();
       if (!data.success) {
-        alert(data.error || "Order create karne me error aayi.");
+        alert(data.error || "Order create karne me error aayi. API route check karein.");
         setLoading(false);
         return;
       }
@@ -58,14 +58,13 @@ export default function ContestRegistrationPage() {
         description: "Contest Registration Entry Fees",
         order_id: data.orderId,
         handler: async function (response: any) {
-          // 3. Payment verify karke database me save karein
           const verifyRes = await fetch("/api/verify-contest-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...response,
               ...formData,
-              amount: 99,
+              amount: 199,
             }),
           });
 
@@ -87,8 +86,9 @@ export default function ContestRegistrationPage() {
 
       const paymentObject = new (window as any).Razorpay(options);
       paymentObject.open();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      alert("Kuch technical error aayi: " + (err.message || err));
       setLoading(false);
     }
   };
@@ -101,7 +101,7 @@ export default function ContestRegistrationPage() {
             <Trophy className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-extrabold text-white">Contest Entry Form</h1>
-          <p className="text-xs text-slate-400">Register karke apna participation secure karein. Entry Fee: <span className="text-emerald-400 font-bold">₹99</span></p>
+          <p className="text-xs text-slate-400">Register karke apna participation secure karein. Entry Fee: <span className="text-emerald-400 font-bold">₹199</span></p>
         </div>
 
         {successId ? (
@@ -116,7 +116,6 @@ export default function ContestRegistrationPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="space-y-1">
-            
               <label className="text-slate-300 font-bold">Full Name</label>
               <input
                 type="text"
@@ -157,7 +156,7 @@ export default function ContestRegistrationPage() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition cursor-pointer mt-2"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Pay ₹99 & Register Now"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Pay ₹199 & Register Now"}
             </Button>
           </form>
         )}
