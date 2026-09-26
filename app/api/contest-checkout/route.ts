@@ -3,16 +3,22 @@ import Razorpay from "razorpay";
 
 export async function POST(req: Request) {
   try {
-    // Razorpay ko andar initialize karein taaki build-time error na aaye
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID || "",
-      key_secret: process.env.RAZORPAY_KEY_SECRET || "",
-    });
+    const key_id = process.env.RAZORPAY_KEY_ID;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
-    const { amount } = await req.json(); // ₹199 aayega
+    if (!key_id || !key_secret) {
+      return NextResponse.json(
+        { success: false, error: "Razorpay keys are missing in environment variables!" },
+        { status: 500 }
+      );
+    }
+
+    const razorpay = new Razorpay({ key_id, key_secret });
+
+    const { amount } = await req.json();
 
     const options = {
-      amount: amount * 100, // Paise me convert (199 * 100 = 19900)
+      amount: amount * 100, // 199 * 100 = 19900 paise
       currency: "INR",
       receipt: "receipt_" + Math.random().toString(36).substring(7),
     };
@@ -27,6 +33,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Razorpay Order Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || "Unknown server error" }, { status: 500 });
   }
 }
