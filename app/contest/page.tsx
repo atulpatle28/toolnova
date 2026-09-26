@@ -24,16 +24,6 @@ export default function ContestPage() {
   const [successData, setSuccessData] = useState<{ entryId: string; referralCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
@@ -42,68 +32,26 @@ export default function ContestPage() {
     }
 
     setLoading(true);
-    const res = await loadRazorpayScript();
-    if (!res) {
-      alert("Razorpay SDK load nahi ho paya. Internet connection check karein.");
-      setLoading(false);
-      return;
-    }
 
     try {
-      // 1. Order create karein (₹200 = 20000 paise)
+      // 1. Instamojo Payment Request create karein backend ke zariye
       const response = await fetch("/api/contest-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, amount: 200 }),
+        body: JSON.stringify({ ...formData, amount: 199 }),
       });
 
       const data = await response.json();
-      if (!data.success) {
-        alert(data.error || "Order create karne me error aayi. API route check karein.");
+      
+      if (!data.success || !data.paymentUrl) {
+        alert(data.error || "Payment request create karne me error aayi. API route check karein.");
         setLoading(false);
         return;
       }
 
-      // 2. Razorpay Popup kholen
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: data.amount,
-        currency: data.currency,
-        name: "ToolKraft Giveaway",
-        description: "iPhone & Android Lucky Draw Entry Fee",
-        order_id: data.orderId,
-        handler: async function (response: any) {
-          const verifyRes = await fetch("/api/verify-contest-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...response,
-              ...formData,
-              amount: 200,
-            }),
-          });
+      // 2. User ko Instamojo ke secure payment page par redirect karein
+      window.location.href = data.paymentUrl;
 
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) {
-          setSuccessData({
-              entryId: verifyData.entryId || "TK-" + Math.floor(100000 + Math.random() * 900000),
-              referralCode: verifyData.referralCode || "ref_" + Math.random().toString(36).substring(7)
-            });
-          } else {
-            alert("Payment verification fail ho gayi!");
-          }
-          setLoading(false);
-        },
-        prefill: {
-          name: formData.name,
-          email: formData.email,
-          contact: formData.phone,
-        },
-        theme: { color: "#10b981" },
-      };
-
-      const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.open();
     } catch (err: any) {
       console.error("Payment error:", err);
       alert("Kuch technical error aayi: " + (err.message || err));
@@ -143,7 +91,7 @@ export default function ContestPage() {
             Win Brand New <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">iPhone &amp; Android Phones</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Participate in ToolKraft&apos;s verified lucky draw. Secure your slot for just <strong className="text-emerald-400">₹200</strong>. Share your referral link to multiply your winning entries!
+            Participate in ToolKraft&apos;s verified lucky draw. Secure your slot for just <strong className="text-emerald-400">₹199</strong>. Share your referral link to multiply your winning entries!
           </p>
         </div>
 
@@ -237,7 +185,7 @@ export default function ContestPage() {
               <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-white">Secure Your Lucky Draw Slot</h2>
                 <p className="text-xs text-slate-400">
-                  Entry Fee: <span className="text-emerald-400 font-bold text-sm">₹200</span> (Includes 100% Money-Back Guarantee)
+                  Entry Fee: <span className="text-emerald-400 font-bold text-sm">₹199</span> (Includes 100% Money-Back Guarantee)
                 </p>
               </div>
 
@@ -285,15 +233,15 @@ export default function ContestPage() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Processing Secure Payment...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Redirecting to Secure Payment...
                     </>
                   ) : (
-                    "Pay ₹200 & Join Lucky Draw"
+                    "Pay ₹199 & Join Lucky Draw"
                   )}
                 </Button>
 
                 <p className="text-[10px] text-center text-slate-500 mt-2">
-                  🔒 Secured by Razorpay 256-Bit SSL Encryption. Zero hidden charges.
+                  🔒 Secured by Instamojo Payment Gateway. Zero hidden charges.
                 </p>
               </form>
             </div>
@@ -312,7 +260,7 @@ export default function ContestPage() {
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
               <h4 className="font-semibold text-white text-sm">💰 100% Money-Back Guarantee</h4>
               <p className="leading-relaxed">
-                If the contest fails to reach the minimum required participant threshold before the closing date, the event will be called off and 100% of the entry fee (₹200) will be automatically refunded to your original payment source within 3–5 working days.
+                If the contest fails to reach the minimum required participant threshold before the closing date, the event will be called off and 100% of the entry fee (₹199) will be automatically refunded to your original payment source within 3–5 working days.
               </p>
             </div>
 
