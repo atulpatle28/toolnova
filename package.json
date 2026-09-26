@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
+    "@prisma/client": "^7.10.0",
     "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "cloudconvert": "^3.0.0",
@@ -29,6 +31,7 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.2.108",
     "pptxgenjs": "^4.0.1",
+    "prisma": "^8.0.0-rc.17",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
