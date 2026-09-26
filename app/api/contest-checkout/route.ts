@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const options = {
       amount: amount * 100, // Paise me convert (199 * 100 = 19900)
       currency: "INR",
-      receipt: "receipt_" + Math.random().toString(36.substring(7)),
+      receipt: "receipt_" + Math.random().toString(36).substring(7),
     };
 
     const order = await razorpay.orders.create(options);
