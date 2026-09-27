@@ -24,6 +24,9 @@ export default function ContestPage() {
   const [successData, setSuccessData] = useState<{ entryId: string; referralCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Aapka naya Instamojo direct payment link yahan set kar diya gaya hai
+  const INSTAMOJO_PAYMENT_URL = "https://imjo.in/Z2vMsE";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
@@ -34,23 +37,13 @@ export default function ContestPage() {
     setLoading(true);
 
     try {
-      // 1. Instamojo Payment Request create karein backend ke zariye
-      const response = await fetch("/api/contest-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, amount: 199 }),
-      });
+      // User ki details localStorage me save kar lete hain
+      localStorage.setItem("contest_user", JSON.stringify(formData));
 
-      const data = await response.json();
-      
-      if (!data.success || !data.paymentUrl) {
-        alert(data.error || "Payment request create karne me error aayi. API route check karein.");
-        setLoading(false);
-        return;
-      }
-
-      // 2. User ko Instamojo ke secure payment page par redirect karein
-      window.location.href = data.paymentUrl;
+      // Thoda sa loading dikhakar direct Instamojo payment link par redirect kar denge
+      setTimeout(() => {
+        window.location.href = INSTAMOJO_PAYMENT_URL;
+      }, 1000);
 
     } catch (err: any) {
       console.error("Payment error:", err);
