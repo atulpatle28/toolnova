@@ -24,7 +24,7 @@ export default function ContestPage() {
   const [successData, setSuccessData] = useState<{ entryId: string; referralCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Aapka naya Instamojo direct payment link yahan set kar diya gaya hai
+  // Instamojo direct payment link
   const INSTAMOJO_PAYMENT_URL = "https://www.instamojo.com/@toolkraft";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,13 +78,13 @@ export default function ContestPage() {
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase">
-            <Sparkles className="w-4 h-4" /> Season 1 Mega Giveaway
+            <Sparkles className="w-4 h-4" /> Season 1 Mega Giveaway (Target: 50,000 Entries)
           </div>
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
             Win Brand New <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">iPhone &amp; Android Phones</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Participate in ToolKraft&apos;s verified lucky draw. Secure your slot for just <strong className="text-emerald-400">₹199</strong>. Share your referral link to multiply your winning entries!
+            Participate in ToolKraft&apos;s verified lucky draw. Secure your slot for just <strong className="text-emerald-400">₹49</strong>. The lucky draw will automatically unlock once the milestone of <strong className="text-emerald-400">50,000 total entries</strong> is reached!
           </p>
         </div>
 
@@ -113,8 +113,8 @@ export default function ContestPage() {
               <Gift className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-white">Next 50 People</h3>
-            <p className="text-xl font-black text-violet-400">1000Rs Per Person</p>
-            <p className="text-[11px] text-slate-400">ToolKraft Mega Giveaway.</p>
+            <p className="text-xl font-black text-violet-400">₹1,000 Per Person</p>
+            <p className="text-[11px] text-slate-400">Cash reward distributed as part of ToolKraft Mega Giveaway.</p>
           </div>
         </div>
 
@@ -178,7 +178,7 @@ export default function ContestPage() {
               <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-white">Secure Your Lucky Draw Slot</h2>
                 <p className="text-xs text-slate-400">
-                  Entry Fee: <span className="text-emerald-400 font-bold text-sm">₹199</span> (Includes 100% Money-Back Guarantee)
+                  Entry Fee: <span className="text-emerald-400 font-bold text-sm">₹49</span> (Draw unlocks at 50,000 total entries)
                 </p>
               </div>
 
@@ -229,7 +229,7 @@ export default function ContestPage() {
                       <Loader2 className="w-4 h-4 animate-spin" /> Redirecting to Secure Payment...
                     </>
                   ) : (
-                    "Pay ₹199 & Join Lucky Draw"
+                    "Pay ₹49 & Join Lucky Draw"
                   )}
                 </Button>
 
@@ -253,14 +253,14 @@ export default function ContestPage() {
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
               <h4 className="font-semibold text-white text-sm">💰 100% Money-Back Guarantee</h4>
               <p className="leading-relaxed">
-                If the contest fails to reach the minimum required participant threshold before the closing date, the event will be called off and 100% of the entry fee (₹199) will be automatically refunded to your original payment source within 3–5 working days.
+                The lucky draw will officially open and winners will be announced only after reaching the target threshold of <strong className="text-emerald-400">50,000 total entries</strong>. If the target is not met within the deadline, 100% of the entry fee (₹49) will be fully refunded to your original payment source.
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
               <h4 className="font-semibold text-white text-sm">🎯 Winner Selection Algorithm</h4>
               <p className="leading-relaxed">
-                Winners are chosen transparently via a cryptographically secure random number generator script. Sharing your unique referral link multiplies your entries in the draw pool, significantly increasing your chances of winning.
+                Winners are chosen transparently via a cryptographically secure random number generator script as soon as 50,000 entries are completed. Sharing your unique referral link multiplies your entries in the pool.
               </p>
             </div>
 
