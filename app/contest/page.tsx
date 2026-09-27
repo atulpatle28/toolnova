@@ -25,7 +25,7 @@ export default function ContestPage() {
   const [copied, setCopied] = useState(false);
 
   // Aapka naya Instamojo direct payment link yahan set kar diya gaya hai
-  const INSTAMOJO_PAYMENT_URL = "https://imjo.in/Z2vMsE";
+  const INSTAMOJO_PAYMENT_URL = "https://www.instamojo.com/@toolkraft";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,8 +113,8 @@ export default function ContestPage() {
               <Gift className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-white">Next 50 People</h3>
-            <p className="text-xl font-black text-violet-400">Free Contest Entry</p>
-            <p className="text-[11px] text-slate-400">Complimentary VIP entry pass for the upcoming ToolKraft Mega Giveaway.</p>
+            <p className="text-xl font-black text-violet-400">1000Rs Per Person</p>
+            <p className="text-[11px] text-slate-400">ToolKraft Mega Giveaway.</p>
           </div>
         </div>
 
