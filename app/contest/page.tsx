@@ -24,8 +24,8 @@ export default function ContestPage() {
   const [successData, setSuccessData] = useState<{ entryId: string; referralCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Cashfree direct verified payment link
-  const CASHFREE_PAYMENT_URL = "https://payments.cashfree.com/links?code=Tb4l3gfv1b5g_AAAAAAAWDP4";
+  // Cashfree reusable verified payment form link
+  const CASHFREE_PAYMENT_URL = "https://payments.cashfree.com/forms/mytoolkraft";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +37,7 @@ export default function ContestPage() {
     setLoading(true);
 
     try {
-      // User ki details browser me save kar li
       localStorage.setItem("contest_user", JSON.stringify(formData));
-
-      // Direct Cashfree ke verified secure link par redirect
       window.location.href = CASHFREE_PAYMENT_URL;
     } catch (err: any) {
       console.error("Payment redirect error:", err);
