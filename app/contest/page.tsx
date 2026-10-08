@@ -24,6 +24,9 @@ export default function ContestPage() {
   const [successData, setSuccessData] = useState<{ entryId: string; referralCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Cashfree direct verified payment link
+  const CASHFREE_PAYMENT_URL = "https://payments.cashfree.com/links?code=Tb4l3gfv1b5g_AAAAAAAWDP4";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
@@ -34,28 +37,13 @@ export default function ContestPage() {
     setLoading(true);
 
     try {
-      // Backend API call karke Cashfree order create karenge
-      const res = await fetch("/api/create-cashfree-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Payment session create nahi ho paya.");
-      }
-
-      // User details localStorage me save kar lete hain
+      // User ki details browser me save kar li
       localStorage.setItem("contest_user", JSON.stringify(formData));
 
-      // Cashfree Checkout redirect URL par user ko bhej denge
-      const cashfreeRedirectUrl = `https://sandbox.cashfree.com/pg/orders?payment_session_id=${data.payment_session_id}`;
-      window.location.href = cashfreeRedirectUrl;
-
+      // Direct Cashfree ke verified secure link par redirect
+      window.location.href = CASHFREE_PAYMENT_URL;
     } catch (err: any) {
-      console.error("Payment error:", err);
+      console.error("Payment redirect error:", err);
       alert("Kuch technical error aayi: " + (err.message || err));
       setLoading(false);
     }
@@ -235,7 +223,7 @@ export default function ContestPage() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Creating Secure Order...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Redirecting to Cashfree Payment...
                     </>
                   ) : (
                     "Pay ₹49 & Join Lucky Draw"
@@ -243,7 +231,7 @@ export default function ContestPage() {
                 </Button>
 
                 <p className="text-[10px] text-center text-slate-500 mt-2">
-                  🔒 Secured by Cashfree Payments API. Zero hidden charges.
+                  🔒 Secured by Cashfree Payments. Zero hidden charges.
                 </p>
               </form>
             </div>
