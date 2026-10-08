@@ -21,7 +21,8 @@ export async function POST(req: Request) {
       },
     };
 
-    const response = await fetch(`${process.env.CASHFREE_API_URL}/orders`, {
+    // Yahan direct URL hardcode kar diya hai taaki undefined error na aaye
+    const response = await fetch("https://sandbox.cashfree.com/pg/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
