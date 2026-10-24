@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import Footer from "./components/Footer"; // Tera naya footer
+import Footer from "./components/Footer";
+import CookieBanner from "./components/CookieBanner"; // Naya Cookie Banner import
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -52,8 +53,9 @@ export default function RootLayout({
           {children}
         </main>
 
-        {/* Footer */}
+        {/* Footer aur Global Components */}
         <Footer />
+        <CookieBanner />
       </body>
     </html>
   );

@@ -36,7 +36,7 @@ export default function Footer() {
             <ul className="space-y-2 text-xs">
               <li className="flex items-start gap-2">
                 <Mail className="w-4 h-4 text-slate-500 shrink-0" />
-                <span>support@mytoolkraft.in<br/>(Response time: 24-48 hours)</span>
+                <span>workformoney28@gmail.com<br/>(Response time: 24-48 hours)</span>
               </li>
               <li className="flex items-start gap-2 pt-1">
                 <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
