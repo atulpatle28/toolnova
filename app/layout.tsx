@@ -1,86 +1,23 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import Script from "next/script";
-import Footer from "./components/Footer";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
+import Footer from "./components/Footer"; // Tera naya footer
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"] });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-export const viewport: Viewport = {
-  themeColor: "#090d16",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-};
-
+// 1. Google aur SEO ke liye Metadata
 export const metadata: Metadata = {
-  title: {
-    default: "ToolKraft - Free Online PDF & Image Utilities | MyToolKraft",
-    template: "%s | ToolKraft",
-  },
-  description:
-    "Fast, private, browser-based tools to compress PDFs, resize images for Govt exam forms, merge documents, and convert formats with zero server upload.",
-  keywords: [
-    "ToolKraft",
-    "ToolKraft PDF",
-    "mytoolkraft",
-    "ToolKraft resizer",
-    "ToolKraft image resizer",
-    "ToolKraft online tools",
-    "PDF tools online",
-    "image compressor",
-    "merge pdf online",
-    "pdf to word converter",
-  ],
-  metadataBase: new URL("https://mytoolkraft.in"),
-  alternates: {
-    canonical: "/",
-  },
-  verification: {
-    google: "LEUp0bxNFHmpKcLcci9Zd_ZU-BZGnLedy8FBbcXjdYM",
-  },
+  title: "ToolKraft - Free Online Digital Tools & Giveaways",
+  description: "Use everyday free digital tools like Excel to PDF converter, and participate in 100% verified lucky draw giveaways to win brand new smartphones and cash.",
+  keywords: "free online tools, pdf converter, lucky draw, win iphone, ToolKraft",
   openGraph: {
-    title: "ToolKraft - Free Online PDF & Image Utilities",
-    description:
-      "Compress PDFs, resize images, and convert files 100% locally in your browser with zero server uploads.",
+    title: "ToolKraft - Free Tools & Giveaways",
+    description: "Join the ToolKraft Mega Giveaway and use our free utility tools.",
     url: "https://mytoolkraft.in",
     siteName: "ToolKraft",
+    locale: "en_IN",
     type: "website",
-    locale: "en_US",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "ToolKraft - Private Browser Utilities",
-    description:
-      "Compress PDFs, resize images, and convert files 100% locally in your browser with zero server upload.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
   },
 };
 
@@ -89,57 +26,34 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const organizationJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "ToolKraft",
-    url: "https://mytoolkraft.in",
-    logo: "https://mytoolkraft.in/icon.png",
-    sameAs: [],
-  };
-
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "ToolKraft",
-    url: "https://mytoolkraft.in",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://mytoolkraft.in/tools?q={search_term_string}",
-      "query-input": "required name=search_term_string",
-    },
-  };
-
   return (
-    <html
-      lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} ${inter.variable}`}
-      suppressHydrationWarning
-    >
-      <head>
-        {/* Global Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-        />
+    <html lang="en">
+      <body className={`${inter.className} bg-slate-950 text-slate-100 flex flex-col min-h-screen`}>
+        
+        {/* 2. Professional Header / Navbar */}
+        <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <Link href="/" className="text-lg font-black text-white tracking-tight flex items-center gap-2">
+              <span className="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-md">TK</span>
+              ToolKraft
+            </Link>
+            
+            <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+              <Link href="/" className="hover:text-emerald-400 transition">Home</Link>
+              <Link href="/about" className="hover:text-emerald-400 transition">About Us</Link>
+              <Link href="/contact" className="hover:text-emerald-400 transition">Contact</Link>
+              <Link href="/contest" className="text-emerald-400 font-bold hover:text-emerald-300 transition">🔥 Giveaway</Link>
+            </nav>
+          </div>
+        </header>
 
-        {/* Google AdSense Script */}
-        <Script
-          id="google-adsense"
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4988623392842380"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-      </head>
-      <body className="bg-[#090d16] text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950 flex flex-col min-h-screen font-sans">
-        <div className="flex-grow">{children}</div>
+        {/* Main Content */}
+        <main className="flex-1">
+          {children}
+        </main>
+
+        {/* Footer */}
         <Footer />
-        <Analytics />
       </body>
     </html>
   );
