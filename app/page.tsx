@@ -78,7 +78,7 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           
           {/* Tool 1 */}
-          <Link href="/excel-to-pdf" className="group p-6 bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
+          <Link href="/tools/excel-to-pdf" className="group p-6 bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
             <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
@@ -89,7 +89,7 @@ export default function Home() {
           </Link>
 
           {/* Tool 2 */}
-          <Link href="/word-to-pdf" className="group p-6 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
+          <Link href="/tools/word-to-pdf" className="group p-6 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
             <div className="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <FileText className="w-6 h-6" />
             </div>
@@ -100,13 +100,13 @@ export default function Home() {
           </Link>
 
           {/* Tool 3 */}
-          <Link href="#" className="group p-6 bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
+          <Link href="/tools/image-compressor" className="group p-6 bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-2xl transition space-y-4 relative overflow-hidden block">
             <div className="w-12 h-12 bg-violet-500/10 text-violet-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <ImageIcon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white mb-1">Image Converter</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">Compress and convert images (JPG, PNG, WebP) for faster web loading. (Coming Soon)</p>
+              <h3 className="text-lg font-bold text-white mb-1">Image Compressor</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">Compress your images for faster web loading without losing quality.</p>
             </div>
           </Link>
 
