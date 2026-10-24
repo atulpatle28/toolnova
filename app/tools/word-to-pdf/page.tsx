@@ -6,7 +6,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, RotateCcw, ShieldCheck, Loader2, UploadCloud } from "lucide-react";
+import { FileText, Download, RotateCcw, ShieldCheck, Loader2, UploadCloud, CheckCircle2, Zap, Lock } from "lucide-react";
 import { triggerFileDownload, sanitizeFilename } from "@/lib/utils";
 
 export default function WordToPdfPage() {
@@ -35,6 +35,7 @@ export default function WordToPdfPage() {
       const result = await mammoth.convertToHtml({ arrayBuffer });
       setHtmlContent(result.value);
     } catch (err: any) {
+      console.error(err);
       setError("Failed to read Word document. Please ensure it is a valid .docx file.");
     }
   };
@@ -46,10 +47,16 @@ export default function WordToPdfPage() {
     setError(null);
 
     try {
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
+      // 1. Scroll fix: html2canvas sometimes fails if page is scrolled
+      const element = previewRef.current;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2, // High resolution
         useCORS: true,
         logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       });
 
       const imgWidth = 210; // A4 size in mm
@@ -60,11 +67,14 @@ export default function WordToPdfPage() {
       const pdf = new jsPDF("p", "mm", "a4");
       let position = 0;
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.98);
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      
+      // First Page
       pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      while (heightLeft >= 0) {
+      // Add extra pages if document is long
+      while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
@@ -75,7 +85,8 @@ export default function WordToPdfPage() {
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
     } catch (err: any) {
-      setError("Failed to generate PDF. Please try again.");
+      console.error("PDF Generation Error: ", err);
+      setError("Failed to generate PDF due to document complexity. Please try again.");
     } finally {
       setConverting(false);
     }
@@ -97,114 +108,26 @@ export default function WordToPdfPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 font-sans">
+      <div className="max-w-4xl mx-auto space-y-12">
         
         {/* Tool Header Card */}
-        <Card className="border-slate-800 bg-slate-900/60 shadow-xl">
+        <Card className="border-slate-800 bg-slate-900/60 shadow-2xl max-w-3xl mx-auto">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <FileText className="w-6 h-6" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <FileText className="w-7 h-7" />
                 </div>
                 <div>
-                  <CardTitle>Word to PDF Converter</CardTitle>
-                  <CardDescription>
-                    Convert DOCX documents to vector PDF instantly inside your browser.
+                  <CardTitle className="text-2xl text-white font-black">Word to PDF</CardTitle>
+                  <CardDescription className="text-slate-400 mt-1">
+                    Convert your DOCX files to PDF securely in your browser.
                   </CardDescription>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-3 py-1 rounded-full">
-                <ShieldCheck className="w-3.5 h-3.5" /> 100% Private
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-3 py-1.5 rounded-full">
+                <ShieldCheck className="w-4 h-4" /> 100% Private
               </span>
             </div>
           </CardHeader>
-
-          <CardContent className="space-y-5">
-            {error && (
-              <div className="p-3 text-xs rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                {error}
-              </div>
-            )}
-
-            {!file ? (
-              <label className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all bg-slate-950/40">
-                <UploadCloud className="w-10 h-10 text-slate-400 mb-3" />
-                <span className="text-sm font-semibold text-slate-200">
-                  Click or drag Word file (.docx) here
-                </span>
-                <span className="text-xs text-slate-500 mt-1">
-                  Files are processed in-browser. Zero server upload.
-                </span>
-                <input
-                  type="file"
-                  accept=".docx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-800 bg-slate-950/80">
-                  <div className="flex items-center gap-3 truncate">
-                    <FileText className="w-5 h-5 text-blue-400 shrink-0" />
-                    <span className="text-sm font-medium text-slate-200 truncate">
-                      {file.name}
-                    </span>
-                  </div>
-                  <Button variant="ghost" size="xs" onClick={reset}>
-                    Change
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {!pdfUrl ? (
-                    <Button
-                      onClick={convertToPdf}
-                      disabled={converting}
-                      variant="default"
-                      className="flex-1"
-                    >
-                      {converting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Converting Document...
-                        </>
-                      ) : (
-                        "Convert to PDF"
-                      )}
-                    </Button>
-                  ) : (
-                    <Button onClick={handleDownload} variant="default" className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download PDF
-                    </Button>
-                  )}
-
-                  <Button variant="outline" onClick={reset}>
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Hidden Preview Container for Canvas Rendering */}
-        {htmlContent && (
-          <div className="p-8 rounded-2xl border border-slate-800 bg-white text-slate-950 overflow-x-auto shadow-xl">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">
-              Document Preview
-            </p>
-            <div
-              ref={previewRef}
-              className="prose max-w-none text-slate-900 leading-relaxed text-sm"
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
