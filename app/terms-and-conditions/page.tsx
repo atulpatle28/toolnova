@@ -1,23 +1,43 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-export const metadata = {
-  title: "Terms and Conditions | ToolKraft",
-  description: "Understand the terms of use for ToolKraft's online tools and content.",
-};
-
-export default function TermsPage() {
+export default function TermsConditions() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.18),_transparent_30%),linear-gradient(135deg,_#020617_0%,_#111827_45%,_#0f172a_100%)] px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-slate-950/60 p-8 shadow-2xl shadow-slate-950/30 backdrop-blur">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Terms and Conditions</p>
-        <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Use of our platform</h1>
-        <p className="mt-4 text-lg leading-8 text-slate-300">
-          By using ToolKraft, you agree to use the tools responsibly and not engage in unlawful or abusive activity. We may update these terms over time and advise users to review them periodically.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">Back home</Link>
+    <div className="min-h-screen bg-slate-950 text-slate-300 font-sans p-6 sm:p-12">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300">
+          <ArrowLeft className="w-4 h-4" /> Back to Home
+        </Link>
+        
+        <div className="space-y-4 border-b border-slate-800 pb-6">
+          <h1 className="text-3xl font-black text-white">Terms & Conditions</h1>
+          <p className="text-xs text-slate-500">Last updated: October 2026</p>
+        </div>
+
+        <div className="space-y-6 text-sm leading-relaxed">
+          <p>Welcome to ToolKraft. By accessing our website (mytoolkraft.in) and participating in our contests, you agree to comply with and be bound by the following terms.</p>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white">1. Eligibility</h2>
+            <p>Participants must be at least 18 years of age and residents of India to participate in the giveaway. Valid identification may be required to claim physical prizes (such as smartphones).</p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white">2. Contest Rules</h2>
+            <p>The entry fee of ₹49 grants you a single slot in the lucky draw pool. The draw is fully automated and cryptographically randomized to ensure absolute fairness. ToolKraft reserves the right to disqualify any participant found using bots, fake details, or fraudulent payment methods.</p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white">3. Prize Fulfillment</h2>
+            <p>Physical prizes will be shipped directly to the winner&apos;s registered address. Cash rewards will be transferred via UPI. Prizes are non-transferable and cannot be exchanged for other items.</p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white">4. Governing Law</h2>
+            <p>These terms and conditions are governed by and construed in accordance with the laws of India. Any disputes relating to these terms and conditions will be subject to the exclusive jurisdiction of the courts of Maharashtra, India.</p>
+          </section>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

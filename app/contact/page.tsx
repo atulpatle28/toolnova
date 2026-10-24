@@ -1,28 +1,51 @@
 import Link from "next/link";
+import { ArrowLeft, Mail, MapPin, Clock } from "lucide-react";
 
-export const metadata = {
-  title: "Contact | ToolKraft",
-  description: "Get in touch with ToolKraft for support, feedback or collaboration requests.",
-};
-
-export default function ContactPage() {
+export default function ContactUs() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.18),_transparent_30%),linear-gradient(135deg,_#020617_0%,_#111827_45%,_#0f172a_100%)] px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-slate-950/60 p-8 shadow-2xl shadow-slate-950/30 backdrop-blur">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">Contact</p>
-        <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">We would love to hear from you</h1>
-        <p className="mt-4 text-lg leading-8 text-slate-300">
-          Reach out for support, suggestions or business inquiries. ToolKraft is designed to be useful, helpful and easy to use.
-        </p>
-        <div className="mt-8 rounded-[1.25rem] border border-white/10 bg-white/10 p-5 text-slate-300">
-          <p>Email: patle.atul28@gmail.com</p>
-          <p className="mt-2">Location: Remote, Global</p>
+    <div className="min-h-screen bg-slate-950 text-slate-300 font-sans p-6 sm:p-12">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300">
+          <ArrowLeft className="w-4 h-4" /> Back to Home
+        </Link>
+        
+        <div className="space-y-4 border-b border-slate-800 pb-6">
+          <h1 className="text-3xl font-black text-white">Contact Us</h1>
+          <p className="text-sm text-slate-400">We are here to help. Reach out to us for any queries regarding your contest entry, refunds, or general support.</p>
         </div>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/" className="rounded-xl bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-3 font-semibold text-white">Go home</Link>
-          <Link href="/privacy-policy" className="rounded-xl border border-white/10 px-4 py-3 font-semibold text-slate-200">View privacy policy</Link>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+              <Mail className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold">Email Support</h3>
+              <p className="text-sm mt-1">workformoney28@gmail.com</p>
+            </div>
+          </div>
+
+          <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold">Response Time</h3>
+              <p className="text-sm mt-1">Monday - Saturday<br/>24 to 48 Hours</p>
+            </div>
+          </div>
+
+          <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4 md:col-span-2">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold">Office Address</h3>
+              <p className="text-sm mt-1">404/1 Shriram Nagar, Tumsar, Bhandara<br/>Maharashtra, India</p>
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
