@@ -11,7 +11,8 @@ import {
   HelpCircle, 
   ArrowLeft, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Users
 } from "lucide-react";
 
 export default function ContestPage() {
@@ -48,6 +49,19 @@ export default function ContestPage() {
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
             ToolKraft ke verified lucky draw mein hissa lein. Sirf <strong className="text-emerald-400">₹49</strong> mein apni entry secure karein. 50,000 entries poori hone par transparent lucky draw khulega!
           </p>
+
+          {/* Current Entries Badge */}
+          <div className="pt-4 flex justify-center">
+            <div className="inline-flex items-center gap-3 bg-slate-900 border border-slate-800 px-5 py-2.5 rounded-2xl shadow-lg">
+              <div className="w-8 h-8 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Entries</p>
+                <p className="text-base font-black text-white">1,269 <span className="text-sm font-medium text-slate-500">/ 50,000</span></p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Prizes Breakdown Grid */}
