@@ -34,7 +34,7 @@ export default function RefundPolicy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-white">4. Contact Information</h2>
-            <p>For any refund-related disputes or queries, reach out to our billing team at <strong className="text-emerald-400">support@mytoolkraft.in</strong>.</p>
+            <p>For any refund-related disputes or queries, reach out to our billing team at <strong className="text-emerald-400">workformoney28@gmail.com</strong>.</p>
           </section>
         </div>
       </div>

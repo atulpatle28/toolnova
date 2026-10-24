@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-white">4. Contact Us</h2>
-            <p>If you have any questions regarding how we handle your data, please write to us at <strong className="text-emerald-400">support@mytoolkraft.in</strong>.</p>
+            <p>If you have any questions regarding how we handle your data, please write to us at <strong className="text-emerald-400">workformoney28@gmail.com</strong>.</p>
           </section>
         </div>
       </div>
