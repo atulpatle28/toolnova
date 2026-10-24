@@ -32,10 +32,11 @@ export default function WordToPdfPage() {
 
     try {
       const arrayBuffer = await uploadedFile.arrayBuffer();
+      // mammoth reads raw HTML cleanly
       const result = await mammoth.convertToHtml({ arrayBuffer });
       setHtmlContent(result.value);
     } catch (err: any) {
-      console.error(err);
+      console.error("Mammoth Error:", err);
       setError("Failed to read Word document. Please ensure it is a valid .docx file.");
     }
   };
@@ -49,33 +50,42 @@ export default function WordToPdfPage() {
     try {
       const element = previewRef.current;
       
+      // Small delay to ensure browser has completely painted the DOM
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const canvas = await html2canvas(element, {
         scale: 2, 
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff",
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+        backgroundColor: "#ffffff"
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Canvas rendering failed");
+      }
 
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
       const pdf = new jsPDF("p", "mm", "a4");
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
       let position = 0;
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      
+      // Add first page
       pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      heightLeft -= pdfHeight;
 
+      // Add extra pages if the document is long
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
+        position -= pdfHeight; 
         pdf.addPage();
         pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        heightLeft -= pdfHeight;
       }
 
       const pdfBlob = pdf.output("blob");
@@ -83,7 +93,7 @@ export default function WordToPdfPage() {
       setPdfUrl(url);
     } catch (err: any) {
       console.error("PDF Generation Error: ", err);
-      setError("Failed to generate PDF due to document complexity. Please try again.");
+      setError("Document layout is too complex or large. Please try a simpler file.");
     } finally {
       setConverting(false);
     }
@@ -205,11 +215,19 @@ export default function WordToPdfPage() {
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-2">
               Document Preview (A4 Format)
             </p>
-            <div className="p-8 sm:p-12 rounded-2xl bg-white text-slate-950 overflow-x-auto shadow-xl">
+            {/* Safe CSS applied here to prevent html2canvas crashes */}
+            <div className="p-8 sm:p-12 rounded-2xl bg-white overflow-x-auto shadow-xl">
               <div
                 ref={previewRef}
-                className="prose max-w-none text-slate-900 leading-relaxed text-sm bg-white"
-                style={{ minHeight: '297mm', padding: '10mm' }}
+                className="bg-white text-black"
+                style={{ 
+                  minHeight: '297mm', 
+                  padding: '20mm', // Standard A4 margins
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontSize: '12pt',
+                  lineHeight: '1.6',
+                  wordWrap: 'break-word'
+                }}
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
             </div>
