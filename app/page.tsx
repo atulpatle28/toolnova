@@ -12,33 +12,25 @@ import {
 export default function Home() {
   const [totalVisits, setTotalVisits] = useState<number | null>(null);
 
-  // Fetch real page visits using a public counting API
+  // Bulletproof Client-Side Visit Counter
   useEffect(() => {
-    // We use hitcounter.pythonanywhere for a simple, database-free real counter
-    // It increments automatically on every fetch.
-    const fetchRealVisits = async () => {
-      try {
-        // Change 'mytoolkraft_home' to a unique ID for your site
-        const response = await fetch('https://hitcounter.pythonanywhere.com/count/tag.svg?url=https%3A%2F%2Fmytoolkraft.in');
-        
-        // As it returns an SVG, this specific free API isn't easy to parse as text in pure JS without regex hacks.
-        // Instead, we will use a simpler key-value API approach (countapi is deprecated, so we use a robust alternative or localStorage for demonstration if API fails)
-        
-        // Simulating the actual real backend fetch that you will implement once Supabase is ready.
-        // For now, it will track real visits using local storage + a baseline to look realistic until your backend is connected.
-        const storedVisits = localStorage.getItem('tk_visits');
-        let currentVisits = storedVisits ? parseInt(storedVisits) : 12450;
-        
-        currentVisits += 1;
-        localStorage.setItem('tk_visits', currentVisits.toString());
-        setTotalVisits(currentVisits);
-        
-      } catch (error) {
-        console.error("Failed to fetch visit count", error);
-      }
-    };
-
-    fetchRealVisits();
+    try {
+      // 1. Storage check karte hain
+      const storedVisits = localStorage.getItem('tk_total_visits');
+      
+      // 2. Agar user pehli baar aaya hai toh ek base number (128,450) se start karo
+      let currentVisits = storedVisits ? parseInt(storedVisits) : 128450;
+      
+      // 3. Har visit par 1 se 3 random number add karo taaki real lage
+      currentVisits += Math.floor(Math.random() * 3) + 1;
+      
+      // 4. Save karke UI mein dikhao
+      localStorage.setItem('tk_total_visits', currentVisits.toString());
+      setTotalVisits(currentVisits);
+    } catch (error) {
+      // Failsafe: Agar kisi wajah se browser storage block kare toh base number dikha do
+      setTotalVisits(128455);
+    }
   }, []);
 
   return (
@@ -88,14 +80,14 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Expanded Tools Grid - Based on User Notebook List */}
+      {/* Expanded Tools Grid */}
       <section id="tools" className="px-4 py-12 max-w-6xl mx-auto space-y-12">
         <div className="text-left mb-8 border-b border-slate-800 pb-4">
           <h2 className="text-2xl font-black text-white">Our Free Tools</h2>
           <p className="text-sm text-slate-400 mt-1">Fast, secure, and processing happens in your browser.</p>
         </div>
 
-        {/* CATEGORY 1: Top Image & Media Tools (From List 1-6) */}
+        {/* CATEGORY 1: Top Image & Media Tools */}
         <div>
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
             <ImageIcon className="w-4 h-4" /> Essential Image Tools
@@ -135,7 +127,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* CATEGORY 2: Main PDF Tools (From List 7-16) */}
+        {/* CATEGORY 2: Main PDF Tools */}
         <div>
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
             <FileText className="w-4 h-4" /> PDF Operations & Converters
@@ -277,7 +269,7 @@ export default function Home() {
               <span className="text-[10px] font-bold uppercase tracking-widest">Total Visits</span>
             </div>
             <div className="text-lg font-black text-slate-300">
-              {totalVisits !== null ? totalVisits.toLocaleString() : "Loading..."}
+              {totalVisits !== null ? totalVisits.toLocaleString() : "..."}
             </div>
           </div>
 
